@@ -2,7 +2,7 @@
     <div class="container-fluid px-4">
         
         <a class="navbar-brand d-flex align-items-center" href="dashboard.php">
-            <img src="../assets/img/RRX_Logo_White_GreenLeaf.png" alt="Regal Rexnord" style="height: 35px; width: auto; max-width: 150px; object-fit: contain;">
+            <img src="assets/img/RRX_Logo_White_GreenLeaf.png" alt="Regal Rexnord" style="height: 35px; width: auto; max-width: 150px; object-fit: contain;">
         </a>
 
         <div class="d-none d-lg-block border-start ms-3 ps-3" style="border-color: rgba(255,255,255,0.2) !important;">
@@ -30,3 +30,4 @@
     </div>
 
 </nav>
+
