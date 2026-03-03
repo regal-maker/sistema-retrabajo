@@ -15,7 +15,17 @@ $defectos = $pdo->query("SELECT * FROM catalogo_defectos ORDER BY nombre_defecto
         .btn-pieza { font-size: 0.75rem; font-weight: 600; transition: 0.2s; height: 100%; }
         /* Efecto al seleccionar pieza */
         .btn-pieza-item.active-pieza { background-color: var(--bs-primary) !important; color: white !important; border-color: var(--bs-primary) !important; }
-        .item-scrap { background: #fff; border-left: 4px solid var(--bs-primary); padding: 10px; margin-bottom: 8px; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        
+        /* Estilos reducidos para el resumen de scrap */
+        .item-scrap { 
+            background: #fff; 
+            border-left: 3px solid var(--bs-primary); 
+            padding: 6px 8px; /* Menos espacio interior */
+            margin-bottom: 5px; /* Menos espacio entre cada pieza */
+            border-radius: 4px; 
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05); 
+        }
+        
         .sub-washer { background: #e9ecef; border-radius: 8px; padding: 10px; margin-top: 10px; }
     </style>
 </head>
@@ -109,7 +119,7 @@ function cargarPiezas(tipo) {
     const grid = document.getElementById('gridPiezas');
     const subMenu = document.getElementById('subMenurandelas');
     
-    // MEJORA: Vaciar carrito al cambiar de tipo de motor
+    // Vaciar carrito al cambiar de tipo de motor
     scrapItems = [];
     arandelasCargadas = false; 
     renderScrap();
@@ -127,7 +137,6 @@ function cargarPiezas(tipo) {
                 if (p.descripcion === "Arandelas Generales") {
                     grid.innerHTML += `<div class="col-md-4"><button type="button" class="btn btn-warning btn-pieza w-100 p-3 shadow-sm" onclick="toggleArandelas('${tipo}')"><i class="bi bi-layers-half me-1"></i> ARANDELAS</button></div>`;
                 } else {
-                    // Se agregó un ID único y la clase btn-pieza-item
                     grid.innerHTML += `<div class="col-md-4"><button type="button" id="btn-pieza-${p.id}" class="btn btn-outline-secondary btn-pieza btn-pieza-item w-100 p-3 shadow-sm" onclick="toggleScrap('${p.id}', '${p.descripcion}')">${p.descripcion}</button></div>`;
                 }
             });
@@ -141,7 +150,7 @@ function toggleArandelas(tipo) {
     if (subMenu.classList.contains('d-none')) {
         subMenu.classList.remove('d-none');
         
-        // MEJORA: Evitar peticiones repetitivas al servidor
+        // Evitar peticiones repetitivas al servidor
         if (!arandelasCargadas) {
             lista.innerHTML = '<span class="small text-muted">Cargando...</span>';
             fetch(`backend/obtener_piezas_catalogo.php?tipo=${tipo}`)
@@ -160,21 +169,19 @@ function toggleArandelas(tipo) {
     }
 }
 
-// NUEVA FUNCIÓN: Alterna entre seleccionar y deseleccionar
+// Alterna entre seleccionar y deseleccionar
 function toggleScrap(id, nombre = '') {
     const index = scrapItems.findIndex(i => i.id === id);
     
     if(index > -1) { 
-        // Si ya existe, lo quita del arreglo
-        scrapItems.splice(index, 1); 
+        scrapItems.splice(index, 1); // Lo quita
     } else { 
-        // Si no existe, lo agrega con cantidad 1
-        scrapItems.push({ id, nombre, qty: 1 }); 
+        scrapItems.push({ id, nombre, qty: 1 }); // Lo agrega
     }
     renderScrap();
 }
 
-// NUEVA FUNCIÓN: Actualiza la cantidad desde el input del resumen
+// Actualiza la cantidad desde el input del resumen
 function updateQty(id, newQty) {
     const item = scrapItems.find(i => i.id === id);
     if (item) {
@@ -210,24 +217,24 @@ function renderScrap() {
             btnElement.classList.add('active-pieza');
         }
 
-        // 3. Generar el HTML del resumen con el input numérico
+        // 3. Generar el HTML compacto del resumen
         container.innerHTML += `
             <div class="item-scrap d-flex justify-content-between align-items-center">
-                <div class="d-flex align-items-center w-75">
-                    <input type="number" class="form-control form-control-sm me-2 text-center" style="width: 65px;" value="${item.qty}" min="1" onchange="updateQty('${item.id}', this.value)">
-                    <span class="text-truncate fw-bold" style="font-size: 0.85rem;" title="${item.nombre}">${item.nombre}</span>
+                <div class="d-flex align-items-center" style="width: 85%;">
+                    <input type="number" class="form-control form-control-sm me-2 text-center px-1 py-0" style="width: 45px; height: 24px; font-size: 0.75rem;" value="${item.qty}" min="1" onchange="updateQty('${item.id}', this.value)">
+                    <span class="text-truncate fw-semibold" style="font-size: 0.75rem; line-height: 1;" title="${item.nombre}">${item.nombre}</span>
                 </div>
-                <button type="button" class="btn btn-sm text-danger" onclick="toggleScrap('${item.id}')">
-                    <i class="bi bi-x-circle-fill fs-5"></i>
+                <button type="button" class="btn btn-sm text-danger p-0 border-0" onclick="toggleScrap('${item.id}')">
+                    <i class="bi bi-x-circle-fill" style="font-size: 1rem;"></i>
                 </button>
             </div>`;
             
-        // 4. Inputs ocultos para el formulario
+        // 4. Inputs ocultos para enviar por POST
         hidden.innerHTML += `<input type="hidden" name="piezas_id[]" value="${item.id}"><input type="hidden" name="piezas_cant[]" value="${item.qty}">`;
     });
 }
 
-// MEJORA: Validación del formulario antes de enviar
+// Validación antes de enviar el formulario
 document.getElementById('formCaptura').addEventListener('submit', function(e) {
     if (scrapItems.length === 0) {
         e.preventDefault();
