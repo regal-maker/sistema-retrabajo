@@ -14,7 +14,9 @@ header("Pragma: no-cache");
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <title>Acceso - Sistema de Retrabajo Regal</title>
+    <a class="navbar-brand d-flex align-items-center" href="dashboard.php">
+            <img src="assets/img/RRX_Logo_White_GreenLeaf.png" alt="Regal Rexnord" style="height: 35px; width: auto; max-width: 150px; object-fit: contain;">
+        </a>
     <?php include 'includes/header.php'; ?>
     <style>
         /* Estilos específicos para que la tarjeta flote al centro de la pantalla */
@@ -74,4 +76,5 @@ header("Pragma: no-cache");
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
+
 </html>
