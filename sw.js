@@ -1,9 +1,9 @@
-const CACHE_NAME = 'regal-retrabajo-v1';
+const CACHE_NAME = 'regal-retrabajo-v3';
 const urlsToCache = [
   './',
   './index.php',
   './assets/css/style.css',
-  './assets/img/RRX_Logo_White_GreenLeaf.png'
+  './assets/img/icono-app.png'
 ];
 
 // Instalar el Service Worker y guardar archivos base en caché
@@ -41,4 +41,5 @@ self.addEventListener('activate', event => {
       );
     })
   );
+
 });
