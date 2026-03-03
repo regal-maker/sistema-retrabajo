@@ -9,7 +9,7 @@
   "orientation": "portrait",
   "icons": [
     {
-      "src": "assets/img/RRX_Logo_White_GreenLeaf.png",
+      "src": "assets/img/icono-app.png",
       "sizes": "192x192",
       "type": "image/png"
     },
@@ -19,4 +19,5 @@
       "type": "image/png"
     }
   ]
+
 }
