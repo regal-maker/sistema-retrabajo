@@ -14,9 +14,6 @@ header("Pragma: no-cache");
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <a class="navbar-brand d-flex align-items-center" href="dashboard.php">
-            <img src="assets/img/RRX_Logo_White_GreenLeaf.png" alt="Regal Rexnord" style="height: 35px; width: auto; max-width: 150px; object-fit: contain;">
-        </a>
     <?php include 'includes/header.php'; ?>
     <style>
         /* Estilos específicos para que la tarjeta flote al centro de la pantalla */
@@ -30,7 +27,9 @@ header("Pragma: no-cache");
 <div class="container d-flex justify-content-center">
     <div class="card card-login p-4">
         <div class="text-center mb-4">
-            <h2 class="logo-regal">REGAL</h2>
+            <a class="navbar-brand d-flex align-items-center" href="dashboard.php">
+            <img src="assets/img/RRX_Logo_White_GreenLeaf.png" alt="Regal Rexnord" style="height: 35px; width: auto; max-width: 150px; object-fit: contain;">
+        </a>
             <p class="text-muted small">Escanee su credencial para ingresar</p>
             
             <?php if(isset($_GET['error'])): ?>
@@ -78,3 +77,4 @@ header("Pragma: no-cache");
 </body>
 
 </html>
+
