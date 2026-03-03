@@ -13,7 +13,9 @@ $defectos = $pdo->query("SELECT * FROM catalogo_defectos ORDER BY nombre_defecto
     <style>
         .card-captura { background: white; border-radius: 12px; border: none; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
         .btn-pieza { font-size: 0.75rem; font-weight: 600; transition: 0.2s; height: 100%; }
-        .item-scrap { background: #fff; border-left: 4px solid var(--regal-blue); padding: 10px; margin-bottom: 8px; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        /* Efecto al seleccionar pieza */
+        .btn-pieza-item.active-pieza { background-color: var(--bs-primary) !important; color: white !important; border-color: var(--bs-primary) !important; }
+        .item-scrap { background: #fff; border-left: 4px solid var(--bs-primary); padding: 10px; margin-bottom: 8px; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
         .sub-washer { background: #e9ecef; border-radius: 8px; padding: 10px; margin-top: 10px; }
     </style>
 </head>
@@ -25,6 +27,7 @@ $defectos = $pdo->query("SELECT * FROM catalogo_defectos ORDER BY nombre_defecto
     <form id="formCaptura" action="backend/guardar_ticket_simple.php" method="POST">
         <div class="row g-4">
             <div class="col-md-7">
+                
                 <div class="card-captura p-4 mb-4">
                     <h6 class="fw-bold text-primary mb-3">1. DATOS DEL MOTOR</h6>
                     <div class="row g-3">
@@ -48,8 +51,22 @@ $defectos = $pdo->query("SELECT * FROM catalogo_defectos ORDER BY nombre_defecto
                     </div>
                 </div>
 
+                <div class="card-captura p-4 mb-4">
+                    <h6 class="fw-bold text-primary mb-3">2. SEVERIDAD DEL DEFECTO</h6>
+                    <div class="d-flex gap-3">
+                        <input type="radio" class="btn-check" name="severidad" id="sev_baja" value="Baja" required>
+                        <label class="btn btn-outline-success w-100 fw-bold py-2" for="sev_baja">BAJA</label>
+                        
+                        <input type="radio" class="btn-check" name="severidad" id="sev_media" value="Media">
+                        <label class="btn btn-outline-warning w-100 fw-bold py-2" for="sev_media">MEDIA</label>
+                        
+                        <input type="radio" class="btn-check" name="severidad" id="sev_alta" value="Alta">
+                        <label class="btn btn-outline-danger w-100 fw-bold py-2" for="sev_alta">ALTA</label>
+                    </div>
+                </div>
+
                 <div class="card-captura p-4">
-                    <h6 class="fw-bold text-primary mb-3">2. COMPONENTES DEL CATÁLOGO</h6>
+                    <h6 class="fw-bold text-primary mb-3">3. COMPONENTES DEL CATÁLOGO</h6>
                     <div id="gridPiezas" class="row g-2"></div>
                     <div id="subMenurandelas" class="sub-washer d-none">
                         <h6 class="small fw-bold border-bottom pb-2 mb-2">MEDIDAS DE WASHERS (SÓLO BUJE)</h6>
@@ -59,13 +76,15 @@ $defectos = $pdo->query("SELECT * FROM catalogo_defectos ORDER BY nombre_defecto
             </div>
 
             <div class="col-md-5">
-                <div class="card-captura p-4 border-top border-danger border-4">
+                <div class="card-captura p-4 border-top border-danger border-4 sticky-top" style="top: 20px;">
                     <h6 class="fw-bold text-danger mb-3"><i class="bi bi-trash3-fill me-2"></i>RESUMEN PARA SCRAP</h6>
+                    
                     <div id="listaScrap" class="mb-4" style="min-height: 250px; max-height: 400px; overflow-y: auto;">
                         <p class="text-center text-muted py-5 small">Seleccione componentes para scrap...</p>
                     </div>
+                    
                     <div class="mb-4 pt-3 border-top">
-                        <label class="form-label small fw-bold">TIPO DE DEFECTO</label>
+                        <label class="form-label small fw-bold">TIPO DE DEFECTO PRINCIPAL</label>
                         <select name="id_defecto" class="form-select form-select-lg" required>
                             <option value="">Seleccione...</option>
                             <?php foreach($defectos as $d): ?>
@@ -84,23 +103,32 @@ $defectos = $pdo->query("SELECT * FROM catalogo_defectos ORDER BY nombre_defecto
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
 let scrapItems = [];
+let arandelasCargadas = false;
+
 function cargarPiezas(tipo) {
     const grid = document.getElementById('gridPiezas');
     const subMenu = document.getElementById('subMenurandelas');
+    
+    // MEJORA: Vaciar carrito al cambiar de tipo de motor
+    scrapItems = [];
+    arandelasCargadas = false; 
+    renderScrap();
+    
     grid.innerHTML = '<div class="text-center p-4"><div class="spinner-border text-primary" role="status"></div></div>';
     subMenu.classList.add('d-none');
 
-    // ATENCIÓN: La ruta ahora apunta a backend/
     fetch(`backend/obtener_piezas_catalogo.php?tipo=${tipo}`)
         .then(res => res.json())
         .then(data => {
             grid.innerHTML = "";
             data.forEach(p => {
                 if (p.descripcion.includes("Washer .") || p.descripcion.includes("Washer 1") || p.descripcion.includes("Washer 5")) return;
+                
                 if (p.descripcion === "Arandelas Generales") {
                     grid.innerHTML += `<div class="col-md-4"><button type="button" class="btn btn-warning btn-pieza w-100 p-3 shadow-sm" onclick="toggleArandelas('${tipo}')"><i class="bi bi-layers-half me-1"></i> ARANDELAS</button></div>`;
                 } else {
-                    grid.innerHTML += `<div class="col-md-4"><button type="button" class="btn btn-outline-secondary btn-pieza w-100 p-3 shadow-sm" onclick="addScrap('${p.id}', '${p.descripcion}')">${p.descripcion}</button></div>`;
+                    // Se agregó un ID único y la clase btn-pieza-item
+                    grid.innerHTML += `<div class="col-md-4"><button type="button" id="btn-pieza-${p.id}" class="btn btn-outline-secondary btn-pieza btn-pieza-item w-100 p-3 shadow-sm" onclick="toggleScrap('${p.id}', '${p.descripcion}')">${p.descripcion}</button></div>`;
                 }
             });
         });
@@ -109,41 +137,104 @@ function cargarPiezas(tipo) {
 function toggleArandelas(tipo) {
     const subMenu = document.getElementById('subMenurandelas');
     const lista = document.getElementById('listaMedidas');
+    
     if (subMenu.classList.contains('d-none')) {
         subMenu.classList.remove('d-none');
-        // ATENCIÓN: La ruta ahora apunta a backend/
-        fetch(`backend/obtener_piezas_catalogo.php?tipo=${tipo}`)
-            .then(res => res.json())
-            .then(data => {
-                lista.innerHTML = "";
-                data.filter(p => p.descripcion.includes("Washer") && p.descripcion !== "Arandelas Generales").forEach(p => {
-                    lista.innerHTML += `<button type="button" class="btn btn-sm btn-success" onclick="addScrap('${p.id}', '${p.descripcion}')">${p.descripcion}</button>`;
+        
+        // MEJORA: Evitar peticiones repetitivas al servidor
+        if (!arandelasCargadas) {
+            lista.innerHTML = '<span class="small text-muted">Cargando...</span>';
+            fetch(`backend/obtener_piezas_catalogo.php?tipo=${tipo}`)
+                .then(res => res.json())
+                .then(data => {
+                    lista.innerHTML = "";
+                    data.filter(p => p.descripcion.includes("Washer") && p.descripcion !== "Arandelas Generales").forEach(p => {
+                        lista.innerHTML += `<button type="button" id="btn-pieza-${p.id}" class="btn btn-sm btn-outline-secondary btn-pieza-item mb-1" onclick="toggleScrap('${p.id}', '${p.descripcion}')">${p.descripcion}</button>`;
+                    });
+                    arandelasCargadas = true;
+                    renderScrap(); // Actualiza estilos si ya había alguna seleccionada
                 });
-            });
-    } else { subMenu.classList.add('d-none'); }
+        }
+    } else { 
+        subMenu.classList.add('d-none'); 
+    }
 }
 
-function addScrap(id, nombre) {
-    const existe = scrapItems.find(i => i.id === id);
-    if(existe) { existe.qty++; } else { scrapItems.push({ id, nombre, qty: 1 }); }
+// NUEVA FUNCIÓN: Alterna entre seleccionar y deseleccionar
+function toggleScrap(id, nombre = '') {
+    const index = scrapItems.findIndex(i => i.id === id);
+    
+    if(index > -1) { 
+        // Si ya existe, lo quita del arreglo
+        scrapItems.splice(index, 1); 
+    } else { 
+        // Si no existe, lo agrega con cantidad 1
+        scrapItems.push({ id, nombre, qty: 1 }); 
+    }
     renderScrap();
 }
 
-function removeScrap(id) {
-    scrapItems = scrapItems.filter(i => i.id !== id);
-    renderScrap();
+// NUEVA FUNCIÓN: Actualiza la cantidad desde el input del resumen
+function updateQty(id, newQty) {
+    const item = scrapItems.find(i => i.id === id);
+    if (item) {
+        item.qty = Math.max(1, parseInt(newQty) || 1);
+        renderScrap();
+    }
 }
 
 function renderScrap() {
     const container = document.getElementById('listaScrap');
     const hidden = document.getElementById('hiddenFields');
-    container.innerHTML = scrapItems.length === 0 ? '<p class="text-center text-muted py-5 small">Seleccione componentes...</p>' : '';
+    
+    // 1. Limpiar estilos visuales de todos los botones del catálogo
+    document.querySelectorAll('.btn-pieza-item').forEach(btn => {
+        btn.classList.remove('active-pieza', 'btn-primary');
+        btn.classList.add('btn-outline-secondary');
+    });
+
+    if (scrapItems.length === 0) {
+        container.innerHTML = '<p class="text-center text-muted py-5 small">Seleccione componentes...</p>';
+        hidden.innerHTML = "";
+        return;
+    }
+
+    container.innerHTML = "";
     hidden.innerHTML = "";
+    
     scrapItems.forEach(item => {
-        container.innerHTML += `<div class="item-scrap d-flex justify-content-between align-items-center"><span><span class="badge bg-primary me-2">${item.qty}</span><b>${item.nombre}</b></span><button type="button" class="btn btn-sm text-danger" onclick="removeScrap('${item.id}')"><i class="bi bi-x-circle-fill"></i></button></div>`;
+        // 2. Marcar visualmente el botón si está en la lista de scrap
+        const btnElement = document.getElementById(`btn-pieza-${item.id}`);
+        if (btnElement) {
+            btnElement.classList.remove('btn-outline-secondary');
+            btnElement.classList.add('active-pieza');
+        }
+
+        // 3. Generar el HTML del resumen con el input numérico
+        container.innerHTML += `
+            <div class="item-scrap d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center w-75">
+                    <input type="number" class="form-control form-control-sm me-2 text-center" style="width: 65px;" value="${item.qty}" min="1" onchange="updateQty('${item.id}', this.value)">
+                    <span class="text-truncate fw-bold" style="font-size: 0.85rem;" title="${item.nombre}">${item.nombre}</span>
+                </div>
+                <button type="button" class="btn btn-sm text-danger" onclick="toggleScrap('${item.id}')">
+                    <i class="bi bi-x-circle-fill fs-5"></i>
+                </button>
+            </div>`;
+            
+        // 4. Inputs ocultos para el formulario
         hidden.innerHTML += `<input type="hidden" name="piezas_id[]" value="${item.id}"><input type="hidden" name="piezas_cant[]" value="${item.qty}">`;
     });
 }
+
+// MEJORA: Validación del formulario antes de enviar
+document.getElementById('formCaptura').addEventListener('submit', function(e) {
+    if (scrapItems.length === 0) {
+        e.preventDefault();
+        alert('Por favor, seleccione al menos un componente del catálogo para continuar.');
+    }
+});
+
 window.onload = () => cargarPiezas('Balero');
 </script>
 </body>
