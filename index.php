@@ -27,7 +27,7 @@ header("Pragma: no-cache");
 <div class="container d-flex justify-content-center">
     <div class="card card-login p-4">
         <div class="text-center mb-4">
-            <a class="Logo d-flex align-items-center" >
+            <a class="container d-flex justify-content-center" >
             <img src="assets/img/icono-app.png" alt="Regal Rexnord" style="height: 35px; width: auto; max-width: 150px; object-fit: contain;">
         </a>
             <p class="text-muted small">Escanee su credencial para ingresar</p>
@@ -77,6 +77,7 @@ header("Pragma: no-cache");
 </body>
 
 </html>
+
 
 
 
