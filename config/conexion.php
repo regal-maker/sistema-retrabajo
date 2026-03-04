@@ -23,4 +23,5 @@ try {
      die("Error de conexión: " . $e->getMessage());
 }
 ?>
-// MODIFICACIONES DE PRUEBA
+
+//modificacion de prueba
