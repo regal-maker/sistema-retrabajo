@@ -42,6 +42,7 @@ $defectos = $pdo->query("SELECT * FROM catalogo_defectos ORDER BY nombre_defecto
 
                       <a href="panel_principal.php" class="btn btn-sm btn-outline-secondary px-3 fw-bold">
                             <i class="bi bi-arrow-left me-1"></i> VOLVER AL PANEL
+                          <a></a> //para dejar espacio de separacion
                         </a>
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <h6 class="fw-bold text-primary mb-0">1. DATOS DEL MOTOR</h6>
@@ -254,5 +255,6 @@ window.onload = () => cargarPiezas('Balero');
 </script>
 </body>
 </html>
+
 
 
