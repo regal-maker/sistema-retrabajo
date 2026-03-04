@@ -20,8 +20,8 @@ $defectos = $pdo->query("SELECT * FROM catalogo_defectos ORDER BY nombre_defecto
         .item-scrap { 
             background: #fff; 
             border-left: 3px solid var(--bs-primary); 
-            padding: 6px 8px; /* Menos espacio interior */
-            margin-bottom: 5px; /* Menos espacio entre cada pieza */
+            padding: 6px 8px; 
+            margin-bottom: 5px; 
             border-radius: 4px; 
             box-shadow: 0 1px 3px rgba(0,0,0,0.05); 
         }
@@ -39,7 +39,13 @@ $defectos = $pdo->query("SELECT * FROM catalogo_defectos ORDER BY nombre_defecto
             <div class="col-md-7">
                 
                 <div class="card-captura p-4 mb-4">
-                    <h6 class="fw-bold text-primary mb-3">1. DATOS DEL MOTOR</h6>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="fw-bold text-primary mb-0">1. DATOS DEL MOTOR</h6>
+                        <a href="panel_principal.php" class="btn btn-sm btn-outline-secondary px-3 fw-bold">
+                            <i class="bi bi-arrow-left me-1"></i> VOLVER AL PANEL
+                        </a>
+                    </div>
+
                     <div class="row g-3">
                         <div class="col-md-7">
                             <label class="form-label small fw-bold">NÚMERO DE SERIE / MODELO</label>
