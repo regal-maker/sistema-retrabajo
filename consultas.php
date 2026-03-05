@@ -49,6 +49,11 @@ $tickets = $stmt->fetchAll();
 <body>
 
 <?php include 'includes/navbar.php'; ?>
+<div clas="row g-4">
+            <a href="panel_principal.php" class="btn btn-sm btn-outline-secondary px-3 fw-bold">
+                            <i class="bi bi-arrow-left me-1"></i> VOLVER AL PANEL
+                        </a>
+        </div>
 
 <div class="container-fluid px-4">
     <div class="filter-box">
@@ -157,4 +162,5 @@ $tickets = $stmt->fetchAll();
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
+
 </html>
