@@ -48,7 +48,11 @@ $tickets = $stmt->fetchAll();
 <body>
 
 <?php include 'includes/navbar.php'; ?>
-
+<div clas="row g-4">
+            <a href="panel_principal.php" class="btn btn-sm btn-outline-secondary px-3 fw-bold">
+                            <i class="bi bi-arrow-left me-1"></i> VOLVER AL PANEL
+                        </a>
+        </div>
 <div class="container-fluid px-4">
     <div class="filter-box">
         <form method="GET" class="row g-2 align-items-end">
@@ -135,4 +139,5 @@ function finalizar(id) { if(confirm('¿Confirmas el cierre de este folio?')) win
 function cancelar(id) { if(confirm('¿Deseas CANCELAR este folio?')) window.location.href = `backend/cancelar_ticket.php?id=${id}`; }
 </script>
 </body>
+
 </html>
