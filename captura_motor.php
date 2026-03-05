@@ -35,6 +35,11 @@ $defectos = $pdo->query("SELECT * FROM catalogo_defectos ORDER BY nombre_defecto
 
 <div class="container-fluid px-4">
     <form id="formCaptura" action="backend/guardar_ticket_simple.php" method="POST">
+        <div clas="row g-4">
+            <a href="panel_principal.php" class="btn btn-sm btn-outline-secondary px-3 fw-bold">
+                            <i class="bi bi-arrow-left me-1"></i> VOLVER AL PANEL
+                        </a>
+        </div>
         <div class="row g-4">
             <div class="col-md-7">
                 
@@ -42,7 +47,6 @@ $defectos = $pdo->query("SELECT * FROM catalogo_defectos ORDER BY nombre_defecto
 
                       <a href="panel_principal.php" class="btn btn-sm btn-outline-secondary px-3 fw-bold">
                             <i class="bi bi-arrow-left me-1"></i> VOLVER AL PANEL
-                          <a></a> //para dejar espacio de separacion
                         </a>
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <h6 class="fw-bold text-primary mb-0">1. DATOS DEL MOTOR</h6>
@@ -255,6 +259,7 @@ window.onload = () => cargarPiezas('Balero');
 </script>
 </body>
 </html>
+
 
 
 
