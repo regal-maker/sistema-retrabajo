@@ -36,13 +36,23 @@ $tickets = $stmt->fetchAll();
     <title>Monitoreo | Regal Rexnord</title>
     <?php include 'includes/header.php'; ?>
     <style>
-        .card-horizontal { border: none; border-radius: 8px; background: white; box-shadow: 0 2px 6px rgba(0,0,0,0.05); border-left: 5px solid var(--regal-blue); margin-bottom: 8px; }
+        .card-horizontal { border: none; border-radius: 8px; background: white; box-shadow: 0 2px 6px rgba(0,0,0,0.05); border-left: 5px solid var(--regal-blue); margin-bottom: 8px; transition: 0.3s; }
         .serie-txt { font-size: 1.2rem; font-weight: 800; color: #212529; line-height: 1.2; }
         .folio-badge { background: #e9ecef; color: var(--regal-blue); font-weight: bold; font-size: 0.7rem; padding: 2px 8px; border-radius: 4px; }
         .filter-box { background: white; border-radius: 10px; padding: 12px; margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
         .cant-circle { background: var(--regal-blue); color: white; width: 20px; height: 20px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 0.65rem; margin-right: 8px; font-weight: bold; }
         .pieza-item { display: flex; justify-content: space-between; padding: 5px 12px; border-bottom: 1px solid #edf0f2; font-size: 0.8rem; }
         .no-tickets-container { padding: 60px 20px; text-align: center; background: white; border-radius: 12px; border: 2px dashed #dee2e6; }
+        
+        /* Clases de Semaforización */
+        .border-alerta { border-left: 8px solid #ffc107 !important; } /* Amarillo */
+        .border-critico { border-left: 8px solid #dc3545 !important; animation: blink-red 2s infinite; } /* Rojo con parpadeo */
+        
+        @keyframes blink-red {
+            0% { box-shadow: 0 0 0px rgba(220, 53, 69, 0); }
+            50% { box-shadow: 0 0 10px rgba(220, 53, 69, 0.5); }
+            100% { box-shadow: 0 0 0px rgba(220, 53, 69, 0); }
+        }
     </style>
 </head>
 <body>
@@ -71,14 +81,34 @@ $tickets = $stmt->fetchAll();
                 </div>
             </div>
         <?php else: ?>
-            <?php foreach($tickets as $t): ?>
+            <?php foreach($tickets as $t): 
+                // LÓGICA DE TIEMPO
+                $fecha_inicio = new DateTime($t['fecha_apertura']);
+                $fecha_actual = new DateTime();
+                $diferencia = $fecha_actual->diff($fecha_inicio);
+                $minutos_total = ($diferencia->days * 24 * 60) + ($diferencia->h * 60) + $diferencia->i;
+
+                // ASIGNACIÓN DE CLASES
+                $clase_semaforo = "";
+                $texto_tiempo = "text-muted";
+                if ($minutos_total >= 60 && $minutos_total < 120) {
+                    $clase_semaforo = "border-alerta";
+                    $texto_tiempo = "text-warning fw-bold";
+                } elseif ($minutos_total >= 120) {
+                    $clase_semaforo = "border-critico";
+                    $texto_tiempo = "text-danger fw-bold";
+                }
+            ?>
             <div class="col-lg-12">
-                <div class="card card-horizontal">
+                <div class="card card-horizontal <?php echo $clase_semaforo; ?>">
                     <div class="card-body p-2 px-3">
                         <div class="row align-items-center">
                             <div class="col-md-2 border-end text-center">
                                 <span class="folio-badge mb-1 d-inline-block"><?php echo $t['folio']; ?></span><br>
                                 <span class="badge bg-info text-dark w-100" style="font-size: 0.6rem;"><?php echo strtoupper($t['tipo_motor_captura']); ?></span>
+                                <div class="mt-1 <?php echo $texto_tiempo; ?>" style="font-size: 0.75rem;">
+                                    <i class="bi bi-clock"></i> <?php echo $minutos_total; ?> min
+                                </div>
                             </div>
 
                             <div class="col-md-3 border-end">
@@ -130,7 +160,6 @@ $tickets = $stmt->fetchAll();
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-// ATENCIÓN: Las rutas de JS ahora apuntan a backend/
 function finalizar(id) { if(confirm('¿Confirmas el cierre de este folio?')) window.location.href = `backend/cerrar_ticket.php?id=${id}`; }
 function cancelar(id) { if(confirm('¿Deseas CANCELAR este folio?')) window.location.href = `backend/cancelar_ticket.php?id=${id}`; }
 </script>
