@@ -1,6 +1,7 @@
 <?php
-session_start();
-// Damos un paso atrás para entrar a config/
+// SE ELIMINÓ EL session_start() DE AQUÍ PARA EVITAR CONFLICTOS
+
+// Al requerir conexion.php, se configura el volumen persistente ANTES de iniciar sesión
 require_once '../config/conexion.php'; 
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -13,15 +14,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $usuario = $stmt->fetch();
 
     if ($usuario && $pass === $usuario['password']) {
+        // Asignamos las variables de sesión usando la configuración de conexion.php
         $_SESSION['user_id'] = $usuario['id'];
         $_SESSION['user_nombre'] = $usuario['nombre'];
         $_SESSION['user_rol'] = $usuario['rol'];
 
-        // Redirigimos un nivel afuera hacia el dashboard
+        // Redirigimos al dashboard
         header("Location: ../dashboard.php");
         exit();
     } else {
-        // Redirigimos afuera con error
+        // Error de credenciales
         header("Location: ../index.php?error=1");
         exit();
     }
