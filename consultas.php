@@ -49,11 +49,14 @@ $tickets = $stmt->fetchAll();
 <body>
 
 <?php include 'includes/navbar.php'; ?>
-<div clas="row g-4">
+<div class="container-fluid px-4">
+    <div class="row mt-3 mb-3">
+        <div class="col-12">
             <a href="panel_principal.php" class="btn btn-sm btn-outline-secondary px-3 fw-bold">
-                            <i class="bi bi-arrow-left me-1"></i> VOLVER AL PANEL
-                        </a>
+                <i class="bi bi-arrow-left me-1"></i> VOLVER AL PANEL
+            </a>
         </div>
+    </div>
 
 <div class="container-fluid px-4">
     <div class="filter-box">
@@ -164,3 +167,4 @@ $tickets = $stmt->fetchAll();
 </body>
 
 </html>
+
