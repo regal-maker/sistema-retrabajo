@@ -1,4 +1,10 @@
+
 <?php
+// Configuración de sesión persistente (Antes del session_start)
+ini_set('session.cookie_lifetime', 86400 * 30); // 30 días
+ini_set('session.gc_maxlifetime', 86400 * 30);
+session_set_cookie_params(86400 * 30);
+
 // Configuración de la base de datos en la nube (Railway)
 $host = "hopper.proxy.rlwy.net";
 $port = "10349";
@@ -22,4 +28,5 @@ try {
 } catch (\PDOException $e) {
      die("Error de conexión: " . $e->getMessage());
 }
+
 ?>
