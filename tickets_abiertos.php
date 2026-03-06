@@ -165,3 +165,4 @@ function cancelar(id) { if(confirm('¿Deseas CANCELAR este folio?')) window.loca
 </script>
 </body>
 </html>
+
