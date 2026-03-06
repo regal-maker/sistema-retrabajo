@@ -1,13 +1,13 @@
 <?php
-// 1. Configurar ruta de sesiones en el volumen persistente
+// 1. Configurar ruta de sesiones en el volumen persistente de Railway
 $sessionPath = '/tmp/sessions';
 
-// Crear el directorio si no existe (Railway lo montará, pero esto asegura permisos)
+// Crear el directorio si no existe (asegura permisos en el volumen)
 if (!is_dir($sessionPath)) {
     mkdir($sessionPath, 0777, true);
 }
 
-// Establecer la ruta donde PHP guardará los archivos de sesión
+// Establecer la ruta donde PHP guardará los archivos de sesión de forma persistente
 session_save_path($sessionPath);
 
 // 2. Configuración de parámetros de la cookie de sesión (30 días)
