@@ -45,8 +45,8 @@ $tickets = $stmt->fetchAll();
         .no-tickets-container { padding: 60px 20px; text-align: center; background: white; border-radius: 12px; border: 2px dashed #dee2e6; }
         
         /* Clases de Semaforización */
-        .border-alerta { border-left: 8px solid #ffc107 !important; } /* Amarillo */
-        .border-critico { border-left: 8px solid #dc3545 !important; animation: blink-red 2s infinite; } /* Rojo con parpadeo */
+        .border-alerta { border-left: 8px solid #ffc107 !important; } 
+        .border-critico { border-left: 8px solid #dc3545 !important; animation: blink-red 2s infinite; } 
         
         @keyframes blink-red {
             0% { box-shadow: 0 0 0px rgba(220, 53, 69, 0); }
@@ -61,34 +61,27 @@ $tickets = $stmt->fetchAll();
 
 <div class="container-fluid px-4">
     <div class="filter-box">
-        <form method="GET" class="row g-2 align-items-end">
-            <div class="col-md-1"><label class="form-label fw-bold x-small mb-1">Folio</label><input type="text" name="folio" class="form-control form-control-sm" placeholder="RT-..." value="<?php echo $_GET['folio']??''; ?>"></div>
-            <div class="col-md-2"><label class="form-label fw-bold x-small mb-1">Fecha</label><input type="date" name="f_inicio" class="form-control form-control-sm" value="<?php echo $_GET['f_inicio']??''; ?>"></div>
-            <div class="col-md-3"><label class="form-label fw-bold x-small mb-1">Modelo / Serie</label><input type="text" name="modelo" class="form-control form-control-sm" placeholder="Buscar motor..." value="<?php echo $_GET['modelo']??''; ?>"></div>
-            <div class="col-md-2"><label class="form-label fw-bold x-small mb-1">Defecto</label><input type="text" name="defecto" class="form-control form-control-sm" placeholder="Defecto..." value="<?php echo $_GET['defecto']??''; ?>"></div>
-            <div class="col-md-2"><label class="form-label fw-bold x-small mb-1">Operador</label><input type="text" name="operador" class="form-control form-control-sm" placeholder="Nombre..." value="<?php echo $_GET['operador']??''; ?>"></div>
-            <div class="col-md-2 d-flex gap-1"><button type="submit" class="btn btn-primary btn-sm w-100 fw-bold">Filtrar</button><a href="tickets_abiertos.php" class="btn btn-secondary btn-sm"><i class="bi bi-x-circle"></i></a></div>
-        </form>
-    </div>
+        </div>
 
     <div class="row" id="contenedor">
         <?php if (empty($tickets)): ?>
-            <div class="col-12">
-                <div class="no-tickets-container shadow-sm">
-                    <i class="bi bi-clipboard-check text-muted" style="font-size: 3rem;"></i>
-                    <h3 class="fw-bold text-muted mt-2">No hay tickets abiertos</h3>
-                    <p class="text-secondary small">Todos los motores han sido procesados o no coinciden con los filtros.</p>
-                </div>
-            </div>
-        <?php else: ?>
+            <?php else: ?>
             <?php foreach($tickets as $t): 
-                // LÓGICA DE TIEMPO
+                // 1. LÓGICA DE TIEMPO
                 $fecha_inicio = new DateTime($t['fecha_apertura']);
                 $fecha_actual = new DateTime();
                 $diferencia = $fecha_actual->diff($fecha_inicio);
+                
+                // Calculamos el total de minutos para el semáforo
                 $minutos_total = ($diferencia->days * 24 * 60) + ($diferencia->h * 60) + $diferencia->i;
 
-                // ASIGNACIÓN DE CLASES
+                // 2. FORMATEO A HORAS Y MINUTOS
+                $horas = floor($minutos_total / 60);
+                $minutos_restantes = $minutos_total % 60;
+                // Formato final (ej. 1:43)
+                $tiempo_formateado = ($horas > 0) ? "{$horas}:" . str_pad($minutos_restantes, 2, "0", STR_PAD_LEFT) : "{$minutos_restantes} min";
+
+                // ASIGNACIÓN DE CLASES PARA EL SEMÁFORO
                 $clase_semaforo = "";
                 $texto_tiempo = "text-muted";
                 if ($minutos_total >= 60 && $minutos_total < 120) {
@@ -107,7 +100,7 @@ $tickets = $stmt->fetchAll();
                                 <span class="folio-badge mb-1 d-inline-block"><?php echo $t['folio']; ?></span><br>
                                 <span class="badge bg-info text-dark w-100" style="font-size: 0.6rem;"><?php echo strtoupper($t['tipo_motor_captura']); ?></span>
                                 <div class="mt-1 <?php echo $texto_tiempo; ?>" style="font-size: 0.75rem;">
-                                    <i class="bi bi-clock"></i> <?php echo $minutos_total; ?> min
+                                    <i class="bi bi-clock"></i> <?php echo $tiempo_formateado; ?> hrs
                                 </div>
                             </div>
 
@@ -165,4 +158,3 @@ function cancelar(id) { if(confirm('¿Deseas CANCELAR este folio?')) window.loca
 </script>
 </body>
 </html>
-
