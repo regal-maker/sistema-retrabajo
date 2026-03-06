@@ -1,7 +1,4 @@
 <?php
-// SE ELIMINÓ EL session_start() DE AQUÍ PARA EVITAR CONFLICTOS
-
-// Al requerir conexion.php, se configura el volumen persistente ANTES de iniciar sesión
 require_once '../config/conexion.php'; 
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -29,3 +26,4 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 ?>
+
