@@ -1,19 +1,17 @@
 
 <?php
-// Configuración de sesión persistente (Antes del session_start)
+// Configuración de sesión
 ini_set('session.cookie_lifetime', 86400 * 30); // 30 días
 ini_set('session.gc_maxlifetime', 86400 * 30);
 session_set_cookie_params(86400 * 30);
 
-// Configuración de la base de datos en la nube (Railway)
+// Configuración de la base de datos en la nube
 $host = "hopper.proxy.rlwy.net";
 $port = "10349";
 $db   = "railway"; // Nombre por defecto en Railway
 $user = "root";
 $pass = "ZbMHUjaLgKDirZAZjlpClYqaqoiYKLIt"; // <-- ¡Pega tu contraseña aquí!
 $charset = 'utf8mb4';
-
-// Se agregó el puerto ($port) a la conexión
 $dsn = "mysql:host=$host;port=$port;dbname=$db;charset=$charset";
 
 $options = [
@@ -30,3 +28,4 @@ try {
 }
 
 ?>
+
