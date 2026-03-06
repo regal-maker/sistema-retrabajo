@@ -4,6 +4,9 @@ include('config/conexion.php');
 session_start();
 if (!isset($_SESSION['user_id'])) { header("Location: index.php"); exit(); }
 
+// 1. IMPORTANTE: Establecer la zona horaria al inicio del script para PHP
+date_default_timezone_set('America/Mexico_City'); 
+
 // Inicialización de filtros para Tickets Abiertos
 $where_clauses = ["t.estado = 'Abierto'"];
 $params = [];
@@ -42,7 +45,6 @@ $tickets = $stmt->fetchAll();
         .filter-box { background: white; border-radius: 10px; padding: 12px; margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
         .cant-circle { background: var(--regal-blue); color: white; width: 20px; height: 20px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 0.65rem; margin-right: 8px; font-weight: bold; }
         .pieza-item { display: flex; justify-content: space-between; padding: 5px 12px; border-bottom: 1px solid #edf0f2; font-size: 0.8rem; }
-        .no-tickets-container { padding: 60px 20px; text-align: center; background: white; border-radius: 12px; border: 2px dashed #dee2e6; }
         
         /* Clases de Semaforización */
         .border-alerta { border-left: 8px solid #ffc107 !important; } 
@@ -60,28 +62,27 @@ $tickets = $stmt->fetchAll();
 <?php include 'includes/navbar.php'; ?>
 
 <div class="container-fluid px-4">
-    <div class="filter-box">
-        </div>
-
     <div class="row" id="contenedor">
         <?php if (empty($tickets)): ?>
-            <?php else: ?>
+            <div class="col-12 text-center py-5"><p class="text-muted">No hay tickets abiertos.</p></div>
+        <?php else: ?>
             <?php foreach($tickets as $t): 
-                // 1. LÓGICA DE TIEMPO
+                // 2. LÓGICA DE TIEMPO SIN DESFASES
                 $fecha_inicio = new DateTime($t['fecha_apertura']);
-                $fecha_actual = new DateTime();
-                $diferencia = $fecha_actual->diff($fecha_inicio);
+                $fecha_actual = new DateTime(); 
                 
-                // Calculamos el total de minutos para el semáforo
-                $minutos_total = ($diferencia->days * 24 * 60) + ($diferencia->h * 60) + $diferencia->i;
+                // Si la fecha actual es menor que la de apertura por errores de segundos, igualar
+                if ($fecha_actual < $fecha_inicio) $fecha_actual = $fecha_inicio;
 
-                // 2. FORMATEO A HORAS Y MINUTOS
+                $diff = $fecha_actual->diff($fecha_inicio);
+                $minutos_total = ($diff->days * 24 * 60) + ($diff->h * 60) + $diff->i;
+
+                // 3. FORMATEO LEGIBLE (Horas:Minutos)
                 $horas = floor($minutos_total / 60);
                 $minutos_restantes = $minutos_total % 60;
-                // Formato final (ej. 1:43)
-                $tiempo_formateado = ($horas > 0) ? "{$horas}:" . str_pad($minutos_restantes, 2, "0", STR_PAD_LEFT) : "{$minutos_restantes} min";
+                $tiempo_txt = ($horas > 0) ? $horas . ":" . str_pad($minutos_restantes, 2, "0", STR_PAD_LEFT) . " hrs" : $minutos_total . " min";
 
-                // ASIGNACIÓN DE CLASES PARA EL SEMÁFORO
+                // ASIGNACIÓN DE CLASES
                 $clase_semaforo = "";
                 $texto_tiempo = "text-muted";
                 if ($minutos_total >= 60 && $minutos_total < 120) {
@@ -100,28 +101,24 @@ $tickets = $stmt->fetchAll();
                                 <span class="folio-badge mb-1 d-inline-block"><?php echo $t['folio']; ?></span><br>
                                 <span class="badge bg-info text-dark w-100" style="font-size: 0.6rem;"><?php echo strtoupper($t['tipo_motor_captura']); ?></span>
                                 <div class="mt-1 <?php echo $texto_tiempo; ?>" style="font-size: 0.75rem;">
-                                    <i class="bi bi-clock"></i> <?php echo $tiempo_formateado; ?> hrs
+                                    <i class="bi bi-clock"></i> <?php echo $tiempo_txt; ?>
                                 </div>
                             </div>
-
                             <div class="col-md-3 border-end">
                                 <small class="text-muted fw-bold d-block" style="font-size: 0.6rem;">MOTOR / MODELO</small>
                                 <div class="serie-txt"><?php echo $t['id_motor']; ?></div>
                                 <span class="badge bg-primary" style="font-size: 0.6rem;"><?php echo $t['cantidad_motores']; ?> UNIDADES</span>
                             </div>
-
                             <div class="col-md-3 border-end text-center">
                                 <button class="btn btn-link btn-acordeon py-1" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-<?php echo $t['id']; ?>">
                                     <i class="bi bi-list-check me-1"></i> Ver Piezas Scrap
                                 </button>
                                 <div class="text-muted mt-1" style="font-size: 0.7rem;">Defecto: <b><?php echo $t['nombre_defecto']; ?></b></div>
                             </div>
-
                             <div class="col-md-2 border-end text-center">
                                 <small class="text-muted fw-bold d-block" style="font-size: 0.6rem;">OPERADOR</small>
                                 <span class="fw-bold text-dark" style="font-size: 0.8rem;"><?php echo $t['operador']; ?></span>
                             </div>
-
                             <div class="col-md-2 text-center d-flex flex-column gap-1">
                                 <button class="btn btn-success btn-sm fw-bold" onclick="finalizar(<?php echo $t['id']; ?>)">CERRAR</button>
                                 <button class="btn btn-link text-danger p-0 fw-bold" style="font-size: 0.65rem; text-decoration: none;" onclick="cancelar(<?php echo $t['id']; ?>)">
@@ -129,7 +126,6 @@ $tickets = $stmt->fetchAll();
                                 </button>
                             </div>
                         </div>
-
                         <div class="collapse" id="collapse-<?php echo $t['id']; ?>">
                             <div class="mt-2 bg-white border rounded shadow-sm overflow-hidden">
                                 <?php 
