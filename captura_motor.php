@@ -32,14 +32,14 @@ $defectos = $pdo->query("SELECT * FROM catalogo_defectos ORDER BY nombre_defecto
 <body>
 
 <?php include 'includes/navbar.php'; ?>
-
-<div class="container-fluid px-4">
-    <form id="formCaptura" action="backend/guardar_ticket_simple.php" method="POST">
-        <div clas="row g-4">
+<div clas="row g-4">
             <a href="panel_principal.php" class="btn btn-sm btn-outline-secondary px-3 fw-bold">
                             <i class="bi bi-arrow-left me-1"></i> VOLVER AL PANEL
                         </a>
         </div>
+
+<div class="container-fluid px-4">
+    <form id="formCaptura" action="backend/guardar_ticket_simple.php" method="POST">
         <div class="row g-4">
             <div class="col-md-7">
                 
@@ -255,6 +255,7 @@ window.onload = () => cargarPiezas('Balero');
 </script>
 </body>
 </html>
+
 
 
 
