@@ -1,35 +1,33 @@
 <?php
-// 1. Configurar ruta de sesiones en el volumen persistente de Railway
+// 1. Configuración del volumen persistente en Railway
 $sessionPath = '/tmp/sessions';
-
-// Crear el directorio si no existe (asegura permisos en el volumen)
 if (!is_dir($sessionPath)) {
     mkdir($sessionPath, 0777, true);
 }
 
-// Forzar el manejador de archivos y la ruta del volumen
+// Forzar a PHP a usar el almacenamiento por archivos en la ruta del volumen
 ini_set('session.save_handler', 'files');
 session_save_path($sessionPath);
 
-// 2. Configuración robusta de la Cookie (Indispensable para Railway con HTTPS)
+// 2. Configuración de Cookies para Producción (Railway usa HTTPS)
 ini_set('session.cookie_lifetime', 2592000); // 30 días
 ini_set('session.gc_maxlifetime', 2592000);
 
 session_set_cookie_params([
     'lifetime' => 2592000,
     'path' => '/',
-    'domain' => '', // Se ajusta automáticamente al dominio de Railway
-    'secure' => true, // Obligatorio para HTTPS
-    'httponly' => true, // Protege contra XSS
+    'domain' => '', // Se ajusta solo al dominio de tu app
+    'secure' => true, // IMPORTANTE: Railway requiere esto por ser HTTPS
+    'httponly' => true,
     'samesite' => 'Lax'
 ]);
 
-// Iniciar la sesión solo si no existe
+// 3. Iniciar sesión si no existe
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// 3. Datos de conexión a la base de datos
+// 4. Conexión PDO a la Base de Datos
 $host = "hopper.proxy.rlwy.net";
 $port = "10349";
 $db   = "railway"; 
@@ -50,6 +48,5 @@ try {
      die("Error de conexión: " . $e->getMessage());
 }
 
-// Asegurar que la sesión se escriba físicamente antes de cerrar el script
+// Asegurar el guardado físico de la sesión al terminar el script
 register_shutdown_function('session_write_close');
-?>
