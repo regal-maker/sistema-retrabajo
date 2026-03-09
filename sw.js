@@ -1,45 +1,33 @@
-const CACHE_NAME = 'regal-retrabajo-v3';
+const CACHE_NAME = 'regal-retrabajo-v5';
 const urlsToCache = [
   './',
   './index.php',
+  './dashboard.php',
+  './captura_motor.php',
+  './tickets_abiertos.php',
+  './consultas.php',
   './assets/css/style.css',
-  './assets/img/icono-app.png'
+  './assets/img/icono-app.png',
+  './assets/img/RRX_Logo_White_GreenLeaf.png'
 ];
 
-// Instalar el Service Worker y guardar archivos base en caché
 self.addEventListener('install', event => {
   event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(cache => {
-        return cache.addAll(urlsToCache);
-      })
+    caches.open(CACHE_NAME).then(cache => cache.addAll(urlsToCache))
   );
 });
 
-// Interceptar peticiones para que la app cargue más rápido
+// Estrategia Network First: intenta internet, si falla da el caché
 self.addEventListener('fetch', event => {
   event.respondWith(
-    caches.match(event.request)
-      .then(response => {
-        // Devuelve el archivo del caché si existe, si no, lo descarga de internet
-        return response || fetch(event.request);
-      })
+    fetch(event.request).catch(() => caches.match(event.request))
   );
 });
 
-// Limpiar cachés viejos si actualizas la versión
 self.addEventListener('activate', event => {
-  const cacheWhitelist = [CACHE_NAME];
   event.waitUntil(
-    caches.keys().then(cacheNames => {
-      return Promise.all(
-        cacheNames.map(cacheName => {
-          if (cacheWhitelist.indexOf(cacheName) === -1) {
-            return caches.delete(cacheName);
-          }
-        })
-      );
-    })
+    caches.keys().then(keys => Promise.all(
+      keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key))
+    ))
   );
-
 });
