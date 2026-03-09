@@ -25,7 +25,7 @@ $defectos = $pdo->query("SELECT * FROM catalogo_defectos ORDER BY nombre_defecto
 <div class="container-fluid px-4">
     <div class="row mt-3 mb-3">
         <div class="col-12">
-            <a href="panel_principal.php" class="btn btn-sm btn-outline-secondary px-3 fw-bold">
+            <a href="dashboard.php" class="btn btn-sm btn-outline-secondary px-3 fw-bold">
                 <i class="bi bi-arrow-left me-1"></i> VOLVER AL PANEL
             </a>
         </div>
@@ -118,43 +118,47 @@ function abrirDB() {
     });
 }
 
-// SINCRONIZACIÓN MEJORADA
 async function sincronizarFolios() {
     if (!navigator.onLine) return;
+    
     const db = await abrirDB();
     const tx = db.transaction(storeName, "readonly");
     const store = tx.objectStore(storeName);
-    const folios = await new Promise(resolve => {
-        const req = store.getAll();
-        req.onsuccess = () => resolve(req.result);
-    });
+    const req = store.getAll();
 
-    for (const folio of folios) {
-        const formData = new FormData();
-        Object.keys(folio).forEach(key => {
-            if (Array.isArray(folio[key])) {
-                folio[key].forEach(val => formData.append(`${key}[]`, val));
-            } else {
-                formData.append(key, folio[key]);
-            }
-        });
+    req.onsuccess = async () => {
+        const folios = req.result;
+        if (folios.length === 0) return;
 
-        try {
-            const res = await fetch('backend/guardar_ticket_simple.php', { method: 'POST', body: formData });
-            if (res.ok) {
-                const delTx = db.transaction(storeName, "readwrite");
-                await delTx.objectStore(storeName).delete(folio.id);
-                console.log("Ticket offline sincronizado correctamente.");
+        for (const folio of folios) {
+            const formData = new FormData();
+            Object.keys(folio).forEach(key => {
+                if (Array.isArray(folio[key])) {
+                    folio[key].forEach(val => formData.append(`${key}[]`, val));
+                } else {
+                    formData.append(key, folio[key]);
+                }
+            });
+
+            try {
+                const res = await fetch('backend/guardar_ticket_simple.php', { method: 'POST', body: formData });
+                if (res.ok) {
+                    const delTx = db.transaction(storeName, "readwrite");
+                    await delTx.objectStore(storeName).delete(folio.id);
+                    console.log("Folio sincronizado exitosamente.");
+                }
+            } catch (err) { 
+                console.error("Error al sincronizar folio:", err);
+                break; 
             }
-        } catch (err) { break; }
-    }
+        }
+    };
 }
 
-// CAPTURA CON DATOS DE SESIÓN
 document.getElementById('formCaptura').addEventListener('submit', async function(e) {
     if (scrapItems.length === 0) {
         e.preventDefault();
-        alert('Por favor, seleccione componentes.');
+        alert('Por favor, seleccione al menos un componente.');
         return;
     }
     
@@ -164,19 +168,16 @@ document.getElementById('formCaptura').addEventListener('submit', async function
         const data = Object.fromEntries(formData.entries());
         data.piezas_id = scrapItems.map(i => i.id);
         data.piezas_cant = scrapItems.map(i => i.qty);
-        
-        // Inyectar ID de usuario para que el backend lo reconozca al reconectar
         data.id_usuario_apertura = "<?php echo $_SESSION['user_id']; ?>"; 
 
         const db = await abrirDB();
         const tx = db.transaction(storeName, "readwrite");
         await tx.objectStore(storeName).add(data);
-        alert("⚠️ Sin conexión. El folio se ha guardado y se enviará automáticamente al reconectar.");
+        alert("⚠️ Sin conexión. El folio se guardó localmente y se enviará al recuperar internet.");
         window.location.href = 'dashboard.php';
     }
 });
 
-// Lógica de catálogo (cargarPiezas, toggleScrap, renderScrap) mantenida igual...
 function cargarPiezas(tipo) {
     const grid = document.getElementById('gridPiezas');
     scrapItems = [];
@@ -199,27 +200,67 @@ function toggleScrap(id, nombre) {
     renderScrap();
 }
 
+function updateQty(id, newQty) {
+    const item = scrapItems.find(i => i.id === id);
+    if (item) {
+        item.qty = Math.max(1, parseInt(newQty) || 1);
+        renderScrap();
+    }
+}
+
 function renderScrap() {
     const container = document.getElementById('listaScrap');
     const hidden = document.getElementById('hiddenFields');
-    document.querySelectorAll('.btn-pieza-item').forEach(btn => btn.classList.replace('active-pieza','btn-outline-secondary'));
     
+    // Resetear estilos de botones
+    document.querySelectorAll('.btn-pieza-item').forEach(btn => {
+        btn.classList.remove('active-pieza', 'btn-primary');
+        btn.classList.add('btn-outline-secondary');
+    });
+
     if (scrapItems.length === 0) {
         container.innerHTML = '<p class="text-center text-muted py-5 small">Seleccione componentes...</p>';
         hidden.innerHTML = "";
         return;
     }
-    container.innerHTML = ""; hidden.innerHTML = "";
+
+    container.innerHTML = ""; 
+    hidden.innerHTML = "";
+    
     scrapItems.forEach(item => {
         const btn = document.getElementById(`btn-pieza-${item.id}`);
-        if(btn) btn.classList.add('active-pieza');
-        container.innerHTML += `<div class="item-scrap d-flex justify-content-between"><span>${item.nombre}</span><button type="button" class="btn btn-sm text-danger" onclick="toggleScrap('${item.id}')">×</button></div>`;
-        hidden.innerHTML += `<input type="hidden" name="piezas_id[]" value="${item.id}"><input type="hidden" name="piezas_cant[]" value="${item.qty}">`;
+        if(btn) {
+            btn.classList.remove('btn-outline-secondary');
+            btn.classList.add('active-pieza');
+        }
+
+        // HTML del resumen con SELECTOR DE CANTIDAD restaurado
+        container.innerHTML += `
+            <div class="item-scrap d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center" style="width: 85%;">
+                    <input type="number" class="form-control form-control-sm me-2 text-center px-1 py-0" 
+                           style="width: 45px; height: 24px; font-size: 0.75rem;" 
+                           value="${item.qty}" min="1" 
+                           onchange="updateQty('${item.id}', this.value)">
+                    <span class="text-truncate fw-semibold" style="font-size: 0.75rem; line-height: 1;" title="${item.nombre}">${item.nombre}</span>
+                </div>
+                <button type="button" class="btn btn-sm text-danger p-0 border-0" onclick="toggleScrap('${item.id}')">
+                    <i class="bi bi-x-circle-fill" style="font-size: 1rem;"></i>
+                </button>
+            </div>`;
+            
+        hidden.innerHTML += `
+            <input type="hidden" name="piezas_id[]" value="${item.id}">
+            <input type="hidden" name="piezas_cant[]" value="${item.qty}">`;
     });
 }
 
+// Ejecutar sincronización al cargar y al detectar red
 window.addEventListener('online', sincronizarFolios);
-window.onload = () => cargarPiezas('Balero');
+window.onload = () => {
+    cargarPiezas('Balero');
+    sincronizarFolios(); // Forzar intento al entrar a la página
+};
 </script>
 </body>
 </html>
