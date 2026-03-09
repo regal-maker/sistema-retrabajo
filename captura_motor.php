@@ -15,7 +15,6 @@ $defectos = $pdo->query("SELECT * FROM catalogo_defectos ORDER BY nombre_defecto
         .btn-pieza { font-size: 0.75rem; font-weight: 600; transition: 0.2s; height: 100%; }
         .btn-pieza-item.active-pieza { background-color: var(--bs-primary) !important; color: white !important; border-color: var(--bs-primary) !important; }
         .item-scrap { background: #fff; border-left: 3px solid var(--bs-primary); padding: 6px 8px; margin-bottom: 5px; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
-        .sub-washer { background: #e9ecef; border-radius: 8px; padding: 10px; margin-top: 10px; }
     </style>
 </head>
 <body>
@@ -25,7 +24,7 @@ $defectos = $pdo->query("SELECT * FROM catalogo_defectos ORDER BY nombre_defecto
 <div class="container-fluid px-4">
     <div class="row mt-3 mb-3">
         <div class="col-12">
-            <a href="panel_principal.php" class="btn btn-sm btn-outline-secondary px-3 fw-bold">
+            <a href="panel_principal.php" class="btn btn-sm btn-outline-secondary px-3 fw-bold shadow-sm">
                 <i class="bi bi-arrow-left me-1"></i> VOLVER AL PANEL
             </a>
         </div>
@@ -103,6 +102,7 @@ $defectos = $pdo->query("SELECT * FROM catalogo_defectos ORDER BY nombre_defecto
 let scrapItems = [];
 const dbName = "RegalOfflineDB";
 const storeName = "folios_pendientes";
+let estaSincronizando = false;
 
 function abrirDB() {
     return new Promise((resolve, reject) => {
@@ -118,119 +118,95 @@ function abrirDB() {
     });
 }
 
-// SINCRONIZACIÓN CORREGIDA (EVITA ERRORES DE REDIRECCIÓN)
 async function sincronizarFolios() {
-    if (!navigator.onLine) return;
-    const db = await abrirDB();
-    const tx = db.transaction(storeName, "readonly");
-    const store = tx.objectStore(storeName);
-    const req = store.getAll();
+    if (estaSincronizando || !navigator.onLine) return;
+    estaSincronizando = true;
 
-    req.onsuccess = async () => {
-        const folios = req.result;
-        if (folios.length === 0) return;
+    try {
+        const db = await abrirDB();
+        const tx = db.transaction(storeName, "readonly");
+        const store = tx.objectStore(storeName);
+        const req = store.getAll();
 
-        for (const folio of folios) {
-            const formData = new FormData();
-            Object.keys(folio).forEach(key => {
-                if (Array.isArray(folio[key])) {
-                    folio[key].forEach(val => formData.append(`${key}[]`, val));
-                } else {
-                    formData.append(key, folio[key]);
-                }
-            });
+        req.onsuccess = async () => {
+            const folios = req.result;
+            if (folios.length === 0) { estaSincronizando = false; return; }
 
-            try {
-                const res = await fetch('backend/guardar_ticket_simple.php', { 
-                    method: 'POST', 
-                    body: formData,
-                    redirect: 'manual' 
+            for (const folio of folios) {
+                const formData = new FormData();
+                Object.keys(folio).forEach(key => {
+                    if (Array.isArray(folio[key])) {
+                        folio[key].forEach(val => formData.append(`${key}[]`, val));
+                    } else { formData.append(key, folio[key]); }
                 });
 
-                const delTx = db.transaction(storeName, "readwrite");
-                await delTx.objectStore(storeName).delete(folio.id);
-                console.log("Folio sincronizado correctamente.");
-            } catch (err) { break; }
-        }
-    };
+                try {
+                    const res = await fetch('backend/guardar_ticket_simple.php', { 
+                        method: 'POST', body: formData, redirect: 'manual' 
+                    });
+                    const delTx = db.transaction(storeName, "readwrite");
+                    await delTx.objectStore(storeName).delete(folio.id);
+                } catch (err) { break; }
+            }
+            estaSincronizando = false;
+        };
+    } catch (e) { estaSincronizando = false; }
 }
 
 document.getElementById('formCaptura').addEventListener('submit', async function(e) {
-    if (scrapItems.length === 0) {
-        e.preventDefault();
-        alert('Seleccione componentes.');
-        return;
-    }
-    
+    if (scrapItems.length === 0) { e.preventDefault(); alert('Seleccione componentes.'); return; }
     if (!navigator.onLine) {
         e.preventDefault();
         const formData = new FormData(this);
         const data = Object.fromEntries(formData.entries());
         data.piezas_id = scrapItems.map(i => i.id);
         data.piezas_cant = scrapItems.map(i => i.qty);
-        // Inyectar usuario de sesión para envío offline
-        data.id_usuario_apertura = "<?php echo $_SESSION['user_id']; ?>"; 
+        data.id_usuario_apertura = "<?= $_SESSION['user_id'] ?>"; 
 
         const db = await abrirDB();
         const tx = db.transaction(storeName, "readwrite");
         await tx.objectStore(storeName).add(data);
-        alert("⚠️ Guardado localmente. Se enviará al detectar internet.");
+        alert("⚠️ Guardado localmente. Se enviará al detectar red.");
         window.location.href = 'dashboard.php';
     }
 });
 
 function cargarPiezas(tipo) {
     const grid = document.getElementById('gridPiezas');
-    scrapItems = [];
-    renderScrap();
+    scrapItems = []; renderScrap();
     grid.innerHTML = '<div class="text-center p-4"><div class="spinner-border text-primary"></div></div>';
-    fetch(`backend/obtener_piezas_catalogo.php?tipo=${tipo}`)
-        .then(res => res.json())
-        .then(data => {
-            grid.innerHTML = "";
-            data.forEach(p => {
-                grid.innerHTML += `<div class="col-md-4"><button type="button" id="btn-pieza-${p.id}" class="btn btn-outline-secondary btn-pieza btn-pieza-item w-100 p-3" onclick="toggleScrap('${p.id}', '${p.descripcion}')">${p.descripcion}</button></div>`;
-            });
+    fetch(`backend/obtener_piezas_catalogo.php?tipo=${tipo}`).then(res => res.json()).then(data => {
+        grid.innerHTML = "";
+        data.forEach(p => {
+            grid.innerHTML += `<div class="col-md-4"><button type="button" id="btn-pieza-${p.id}" class="btn btn-outline-secondary btn-pieza btn-pieza-item w-100 p-3" onclick="toggleScrap('${p.id}', '${p.descripcion}')">${p.descripcion}</button></div>`;
         });
+    });
 }
 
 function toggleScrap(id, nombre) {
     const idx = scrapItems.findIndex(i => i.id === id);
-    if(idx > -1) scrapItems.splice(idx, 1);
-    else scrapItems.push({ id, nombre, qty: 1 });
+    if(idx > -1) scrapItems.splice(idx, 1); else scrapItems.push({ id, nombre, qty: 1 });
     renderScrap();
 }
 
 function updateQty(id, newQty) {
     const item = scrapItems.find(i => i.id === id);
-    if (item) {
-        item.qty = Math.max(1, parseInt(newQty) || 1);
-        renderScrap();
-    }
+    if (item) { item.qty = Math.max(1, parseInt(newQty) || 1); renderScrap(); }
 }
 
 function renderScrap() {
     const container = document.getElementById('listaScrap');
     const hidden = document.getElementById('hiddenFields');
     document.querySelectorAll('.btn-pieza-item').forEach(btn => btn.classList.replace('active-pieza','btn-outline-secondary'));
-    
-    if (scrapItems.length === 0) {
-        container.innerHTML = '<p class="text-center text-muted py-5 small">Seleccione componentes...</p>';
-        hidden.innerHTML = "";
-        return;
-    }
-
+    if (scrapItems.length === 0) { container.innerHTML = '<p class="text-center text-muted py-5 small">Seleccione componentes...</p>'; hidden.innerHTML = ""; return; }
     container.innerHTML = ""; hidden.innerHTML = "";
     scrapItems.forEach(item => {
         const btn = document.getElementById(`btn-pieza-${item.id}`);
         if(btn) btn.classList.add('active-pieza');
-        // Restaurado el selector de cantidad por pieza
         container.innerHTML += `
             <div class="item-scrap d-flex justify-content-between align-items-center">
                 <div class="d-flex align-items-center" style="width: 85%;">
-                    <input type="number" class="form-control form-control-sm me-2 text-center" 
-                           style="width: 45px; height: 24px;" value="${item.qty}" min="1" 
-                           onchange="updateQty('${item.id}', this.value)">
+                    <input type="number" class="form-control form-control-sm me-2 text-center" style="width: 45px; height: 24px;" value="${item.qty}" min="1" onchange="updateQty('${item.id}', this.value)">
                     <span class="text-truncate fw-semibold small">${item.nombre}</span>
                 </div>
                 <button type="button" class="btn btn-sm text-danger" onclick="toggleScrap('${item.id}')">×</button>
@@ -239,11 +215,8 @@ function renderScrap() {
     });
 }
 
-window.addEventListener('online', sincronizarFolios);
-window.onload = () => {
-    cargarPiezas('Balero');
-    setTimeout(sincronizarFolios, 1500); 
-};
+window.addEventListener('online', () => setTimeout(sincronizarFolios, 2000));
+window.onload = () => { cargarPiezas('Balero'); if(navigator.onLine) sincronizarFolios(); };
 </script>
 </body>
 </html>
