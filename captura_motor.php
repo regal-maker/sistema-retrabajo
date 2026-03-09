@@ -102,8 +102,8 @@ $defectos = $pdo->query("SELECT * FROM catalogo_defectos ORDER BY nombre_defecto
 let scrapItems = [];
 const dbName = "RegalOfflineDB";
 const storeName = "folios_pendientes";
-let estaSincronizando = false;
 
+// 1. Mantenemos la apertura de DB para poder GUARDAR localmente si falla la red
 function abrirDB() {
     return new Promise((resolve, reject) => {
         const request = indexedDB.open(dbName, 1);
@@ -118,47 +118,16 @@ function abrirDB() {
     });
 }
 
-async function sincronizarFolios() {
-    if (estaSincronizando || !navigator.onLine) return;
-    estaSincronizando = true;
-
-    try {
-        const db = await abrirDB();
-        const tx = db.transaction(storeName, "readonly");
-        const store = tx.objectStore(storeName);
-        const req = store.getAll();
-
-        req.onsuccess = async () => {
-            const folios = req.result;
-            if (folios.length === 0) { estaSincronizando = false; return; }
-
-            for (const folio of folios) {
-                const formData = new FormData();
-                Object.keys(folio).forEach(key => {
-                    if (Array.isArray(folio[key])) {
-                        folio[key].forEach(val => formData.append(`${key}[]`, val));
-                    } else { formData.append(key, folio[key]); }
-                });
-
-                try {
-                    const res = await fetch('backend/guardar_ticket_simple.php', { 
-                        method: 'POST', body: formData, redirect: 'manual' 
-                    });
-                    const delTx = db.transaction(storeName, "readwrite");
-                    await delTx.objectStore(storeName).delete(folio.id);
-                } catch (err) { break; }
-            }
-            estaSincronizando = false;
-        };
-    } catch (e) { estaSincronizando = false; }
-}
-
+// 2. Interceptamos el envío: si hay red se va normal, si no, se guarda en IndexedDB
 document.getElementById('formCaptura').addEventListener('submit', async function(e) {
     if (scrapItems.length === 0) { e.preventDefault(); alert('Seleccione componentes.'); return; }
+    
     if (!navigator.onLine) {
         e.preventDefault();
         const formData = new FormData(this);
         const data = Object.fromEntries(formData.entries());
+        
+        // Adjuntamos piezas y usuario de sesión para que el envío global funcione después
         data.piezas_id = scrapItems.map(i => i.id);
         data.piezas_cant = scrapItems.map(i => i.qty);
         data.id_usuario_apertura = "<?= $_SESSION['user_id'] ?>"; 
@@ -166,11 +135,12 @@ document.getElementById('formCaptura').addEventListener('submit', async function
         const db = await abrirDB();
         const tx = db.transaction(storeName, "readwrite");
         await tx.objectStore(storeName).add(data);
-        alert("⚠️ Guardado localmente. Se enviará al detectar red.");
+        alert("⚠️ Sin conexión. El folio se guardó localmente y se enviará automáticamente al recuperar red.");
         window.location.href = 'dashboard.php';
     }
 });
 
+// 3. Lógica de selección de piezas y cantidades (MANTENIDA)
 function cargarPiezas(tipo) {
     const grid = document.getElementById('gridPiezas');
     scrapItems = []; renderScrap();
@@ -198,25 +168,38 @@ function renderScrap() {
     const container = document.getElementById('listaScrap');
     const hidden = document.getElementById('hiddenFields');
     document.querySelectorAll('.btn-pieza-item').forEach(btn => btn.classList.replace('active-pieza','btn-outline-secondary'));
-    if (scrapItems.length === 0) { container.innerHTML = '<p class="text-center text-muted py-5 small">Seleccione componentes...</p>'; hidden.innerHTML = ""; return; }
-    container.innerHTML = ""; hidden.innerHTML = "";
+    
+    if (scrapItems.length === 0) { 
+        container.innerHTML = '<p class="text-center text-muted py-5 small">Seleccione componentes...</p>'; 
+        hidden.innerHTML = ""; 
+        return; 
+    }
+    
+    container.innerHTML = ""; 
+    hidden.innerHTML = "";
+    
     scrapItems.forEach(item => {
         const btn = document.getElementById(`btn-pieza-${item.id}`);
         if(btn) btn.classList.add('active-pieza');
+        
         container.innerHTML += `
             <div class="item-scrap d-flex justify-content-between align-items-center">
                 <div class="d-flex align-items-center" style="width: 85%;">
-                    <input type="number" class="form-control form-control-sm me-2 text-center" style="width: 45px; height: 24px;" value="${item.qty}" min="1" onchange="updateQty('${item.id}', this.value)">
+                    <input type="number" class="form-control form-control-sm me-2 text-center" 
+                           style="width: 45px; height: 24px;" value="${item.qty}" min="1" 
+                           onchange="updateQty('${item.id}', this.value)">
                     <span class="text-truncate fw-semibold small">${item.nombre}</span>
                 </div>
                 <button type="button" class="btn btn-sm text-danger" onclick="toggleScrap('${item.id}')">×</button>
             </div>`;
+            
         hidden.innerHTML += `<input type="hidden" name="piezas_id[]" value="${item.id}"><input type="hidden" name="piezas_cant[]" value="${item.qty}">`;
     });
 }
 
-window.addEventListener('online', () => setTimeout(sincronizarFolios, 2000));
-window.onload = () => { cargarPiezas('Balero'); if(navigator.onLine) sincronizarFolios(); };
+window.onload = () => { 
+    cargarPiezas('Balero'); 
+};
 </script>
 </body>
 </html>
