@@ -73,7 +73,7 @@ $defectos = $pdo->query("SELECT * FROM catalogo_defectos ORDER BY nombre_defecto
                 </div>
 
                 <div class="card-captura p-4 mb-4">
-                    <h6 class="fw-bold text-primary mb-3">2. SEVERIDAD DEL DEFECTO</h6>
+                    <h6 class="fw-bold text-primary mb-3">2. GRAVEDAD DEL DEFECTO</h6>
                     <div class="d-flex gap-3">
                         <input type="radio" class="btn-check" name="severidad" id="sev_baja" value="Baja" required>
                         <label class="btn btn-outline-success w-100 fw-bold py-2" for="sev_baja">BAJA</label>
@@ -296,3 +296,4 @@ window.onload = () => cargarPiezas('Balero');
 </script>
 </body>
 </html>
+
