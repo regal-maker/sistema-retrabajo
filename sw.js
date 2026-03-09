@@ -1,4 +1,4 @@
-const CACHE_NAME = 'regal-retrabajo-v6';
+const CACHE_NAME = 'regal-retrabajo-v8';
 const urlsToCache = [
   './',
   './index.php',
@@ -17,20 +17,16 @@ self.addEventListener('install', event => {
   );
 });
 
-// Estrategia Network First mejorada
+// ESTRATEGIA CORREGIDA: Solo intercepta navegación (GET)
 self.addEventListener('fetch', event => {
-  // Solo interceptar peticiones GET (navegación), no los POST de guardado
+  // REGLA CRÍTICA: Ignorar peticiones POST para que la sincronización no choque
   if (event.request.method !== 'GET') return;
 
   event.respondWith(
     fetch(event.request).catch(() => {
       return caches.match(event.request).then(response => {
-        // Devuelve el caché o una respuesta de error válida para evitar el fallo de red
-        return response || new Response('Sin conexión', { 
-            status: 503, 
-            statusText: 'Service Unavailable',
-            headers: new Headers({'Content-Type': 'text/plain'})
-        });
+        // Devuelve el caché o una respuesta vacía válida
+        return response || new Response('Offline', { status: 503 });
       });
     })
   );
