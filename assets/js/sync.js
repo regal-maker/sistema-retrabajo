@@ -5,7 +5,18 @@ let bloqueoSincronizacion = false;
 
 function abrirDBSync() {
     return new Promise((resolve, reject) => {
-        const request = indexedDB.open(DB_NAME_SYNC, 1);
+        // Subimos la versión a 2 para forzar la actualización
+        const request = indexedDB.open("RegalOfflineDB", 2); 
+
+        request.onupgradeneeded = e => {
+            const db = e.target.result;
+            // Si el almacén no existe, lo creamos aquí
+            if (!db.objectStoreNames.contains("folios_pendientes")) {
+                db.createObjectStore("folios_pendientes", { keyPath: "id", autoIncrement: true });
+                console.log("Almacén 'folios_pendientes' creado con éxito.");
+            }
+        };
+
         request.onsuccess = e => resolve(e.target.result);
         request.onerror = e => reject(e.target.error);
     });
@@ -63,4 +74,5 @@ async function procesarSincronizacionGlobal() {
 
 // Escuchadores globales
 window.addEventListener('online', () => setTimeout(procesarSincronizacionGlobal, 2000));
+
 window.addEventListener('load', procesarSincronizacionGlobal);
