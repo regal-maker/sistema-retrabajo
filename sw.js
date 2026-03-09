@@ -1,4 +1,4 @@
-const CACHE_NAME = 'regal-retrabajo-v10';
+const CACHE_NAME = 'regal-retrabajo-v11';
 const urlsToCache = [
   './',
   './index.php',
@@ -15,28 +15,14 @@ const urlsToCache = [
 
 self.addEventListener('install', event => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => {
-      console.log('Caché abierto');
-      return cache.addAll(urlsToCache);
-    })
+    caches.open(CACHE_NAME).then(cache => cache.addAll(urlsToCache))
   );
 });
 
 self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') return;
-
   event.respondWith(
-    fetch(event.request)
-      .then(response => {
-        // Si la respuesta es válida, la devolvemos
-        return response;
-      })
-      .catch(() => {
-        // Si falla la red (offline), buscamos en el caché
-        return caches.match(event.request).then(res => {
-          return res || new Response('Recurso no disponible offline', { status: 503 });
-        });
-      })
+    fetch(event.request).catch(() => caches.match(event.request))
   );
 });
 
