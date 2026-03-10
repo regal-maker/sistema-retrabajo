@@ -1,0 +1,12 @@
+RewriteEngine On
+Options -Indexes
+
+# 1. Ocultar la extensión .php de la URL
+# Permite entrar a /dashboard en lugar de /dashboard.php
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_FILENAME}\.php -f
+RewriteRule ^([^\.]+)$ $1.php [NC,L]
+
+# 2. Forzar HTTPS para seguridad en Railway
+RewriteCond %{HTTP:X-Forwarded-Proto} !https
+RewriteRule ^(.*)$ https://%{HTTP_HOST}/$1 [R=301,L]
