@@ -3,11 +3,28 @@ include('../config/conexion.php');
 session_start();
 if (!isset($_SESSION['user_id'])) { exit("Sesión no válida"); }
 
-date_default_timezone_set('America/Mexico_City');
-
+$rol = $_SESSION['user_rol']; // Asumiendo que guardas el rol en la sesión
 $user_id = $_SESSION['user_id'];
-$where_clauses = ["t.estado = 'Abierto'", "t.id_usuario_apertura = :user_id"];
-$params = ['user_id' => $user_id];
+
+$where_clauses = [];
+$params = [];
+
+// --- LÓGICA DE EXCEPCIÓN PARA ADMINISTRADORES / INGENIEROS ---
+if ($rol !== 'Administrador' && $rol !== 'Ingeniero') {
+    $where_clauses[] = "t.id_usuario_apertura = :user_id";
+    $params['user_id'] = $user_id;
+}
+
+// Filtros provenientes de la URL (GET)
+if (!empty($_GET['folio'])) { $where_clauses[] = "t.folio LIKE :folio"; $params['folio'] = "%".$_GET['folio']."%"; }
+if (!empty($_GET['f_inicio'])) { $where_clauses[] = "DATE(t.fecha_apertura) >= :f_ini"; $params['f_ini'] = $_GET['f_inicio']; }
+if (!empty($_GET['f_fin'])) { $where_clauses[] = "DATE(t.fecha_apertura) <= :f_fin"; $params['f_fin'] = $_GET['f_fin']; }
+if (!empty($_GET['modelo'])) { $where_clauses[] = "t.id_motor LIKE :modelo"; $params['modelo'] = "%".$_GET['modelo']."%"; }
+if (!empty($_GET['defecto'])) { $where_clauses[] = "d.nombre_defecto LIKE :defecto"; $params['defecto'] = "%".$_GET['defecto']."%"; }
+if (!empty($_GET['estado'])) { $where_clauses[] = "t.estado = :estado"; $params['estado'] = $_GET['estado']; }
+if (!empty($_GET['operador'])) { $where_clauses[] = "u.nombre LIKE :operador"; $params['operador'] = "%".$_GET['operador']."%"; }
+
+$where_sql = count($where_clauses) > 0 ? "WHERE " . implode(" AND ", $where_clauses) : "";
 
 $sql = "SELECT t.*, d.nombre_defecto, u.nombre as operador,
         (SELECT GROUP_CONCAT(CONCAT(tp.cantidad, 'x ', cp.descripcion) SEPARATOR '||') 
@@ -16,64 +33,43 @@ $sql = "SELECT t.*, d.nombre_defecto, u.nombre as operador,
         FROM tickets t
         LEFT JOIN catalogo_defectos d ON t.id_defecto = d.id
         LEFT JOIN usuarios u ON t.id_usuario_apertura = u.id
-        WHERE " . implode(" AND ", $where_clauses) . "
-        ORDER BY t.fecha_apertura DESC";
+        $where_sql
+        ORDER BY t.fecha_apertura DESC LIMIT 100";
 
 $stmt = $pdo->prepare($sql);
 $stmt->execute($params);
 $tickets = $stmt->fetchAll();
 
 if (empty($tickets)) {
-    echo '<div class="col-12 text-center py-5"><p class="text-muted">No tienes tickets abiertos.</p></div>';
+    echo '<div class="col-12 text-center py-5"><p class="text-muted">No se encontraron registros.</p></div>';
     exit;
 }
 
-foreach($tickets as $t):
-    $fecha_inicio = new DateTime($t['fecha_apertura']);
-    $fecha_actual = new DateTime();
-    if ($fecha_actual < $fecha_inicio) $fecha_actual = $fecha_inicio;
-    $diff = $fecha_actual->diff($fecha_inicio);
-    $minutos_total = ($diff->days * 24 * 60) + ($diff->h * 60) + $diff->i;
-
-    $clase_semaforo = "";
-    if ($minutos_total >= 60 && $minutos_total < 120) $clase_semaforo = "border-alerta";
-    elseif ($minutos_total >= 120) $clase_semaforo = "border-critico";
-?>
+foreach($tickets as $t): ?>
     <div class="col-lg-12">
-        <div class="card card-horizontal <?php echo $clase_semaforo; ?>">
+        <div class="card card-historial shadow-sm mb-2" style="border-left: 5px solid var(--regal-blue);">
             <div class="card-body p-2 px-3">
                 <div class="row align-items-center">
                     <div class="col-md-2 border-end text-center">
-                        <span class="folio-badge mb-1 d-inline-block"><?php echo $t['folio']; ?></span><br>
-                        <span class="badge bg-info text-dark w-100" style="font-size: 0.6rem;"><?php echo strtoupper($t['tipo_motor_captura']); ?></span>
-                        <div class="mt-1 small"><i class="bi bi-clock"></i> <?php echo $minutos_total; ?> min</div>
+                        <span class="badge border text-primary"><?php echo $t['folio']; ?></span>
+                        <div class="text-muted small mt-1"><?php echo date('d/m/y H:i', strtotime($t['fecha_apertura'])); ?></div>
                     </div>
                     <div class="col-md-3 border-end">
-                        <small class="text-muted fw-bold d-block" style="font-size: 0.6rem;">MOTOR / MODELO</small>
-                        <div class="serie-txt" style="font-size: 1.1rem; font-weight: 800;"><?php echo $t['id_motor']; ?></div>
+                        <div class="fw-bold"><?php echo $t['id_motor']; ?></div>
+                        <span class="badge bg-light text-dark border"><?php echo strtoupper($t['tipo_motor_captura']); ?></span>
                     </div>
-                    <div class="col-md-3 border-end text-center">
-                        <button class="btn btn-link btn-sm py-0" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-<?php echo $t['id']; ?>">
-                            Ver Piezas Scrap
-                        </button>
-                        <div class="text-muted small">Defecto: <?php echo $t['nombre_defecto']; ?></div>
+                    <div class="col-md-3 border-end">
+                        <small class="text-muted d-block fw-bold" style="font-size: 0.6rem;">DEFECTO</small>
+                        <span class="fw-bold text-danger"><?php echo $t['nombre_defecto']; ?></span>
                     </div>
                     <div class="col-md-2 border-end text-center">
-                        <small class="text-muted d-block" style="font-size: 0.6rem;">OPERADOR</small>
-                        <span class="fw-bold small"><?php echo $t['operador']; ?></span>
+                        <span class="badge <?php 
+                            echo ($t['estado']=='Cerrado') ? 'bg-success' : (($t['estado']=='Cancelado') ? 'bg-danger' : 'bg-warning text-dark'); 
+                        ?>"><?php echo strtoupper($t['estado']); ?></span>
                     </div>
-                    <div class="col-md-2 text-center d-flex flex-column gap-1">
-                        <button class="btn btn-success btn-sm fw-bold" onclick="finalizar(<?php echo $t['id']; ?>)">CERRAR</button>
-                    </div>
-                </div>
-                <div class="collapse" id="collapse-<?php echo $t['id']; ?>">
-                    <div class="mt-2 bg-light p-2 small border rounded">
-                        <?php 
-                        if(!empty($t['piezas_detalle'])){
-                            $piezas = explode('||', $t['piezas_detalle']);
-                            foreach($piezas as $p) echo "<div>• $p</div>";
-                        } else { echo "Sin piezas."; }
-                        ?>
+                    <div class="col-md-2 text-center">
+                        <small class="text-muted d-block fw-bold" style="font-size: 0.6rem;">OPERADOR</small>
+                        <span class="small fw-bold"><?php echo $t['operador']; ?></span>
                     </div>
                 </div>
             </div>
