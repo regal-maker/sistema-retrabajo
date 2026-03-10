@@ -28,7 +28,7 @@ if (!isset($_SESSION['user_id'])) { header("Location: index.php"); exit(); }
         </div>
         <div class="col-md-6 text-end">
             <div id="loading-indicator" class="spinner-border spinner-border-sm text-primary d-none" role="status"></div>
-            <small class="text-muted ms-2">Auto-actualización activa (10s)</small>
+            <small class="text-muted ms-2">Auto-actualización activa (5s)</small>
         </div>
     </div>
 
@@ -69,6 +69,7 @@ function finalizar(id) { if(confirm('¿Cerrar folio?')) window.location.href = `
 </script>
 </body>
 </html>
+
 
 
 
