@@ -24,7 +24,7 @@ $defectos = $pdo->query("SELECT * FROM catalogo_defectos ORDER BY nombre_defecto
 <div class="container-fluid px-4">
     <div class="row mt-3 mb-3">
         <div class="col-12">
-            <a href="panel_principal.php" class="btn btn-sm btn-outline-secondary px-3 fw-bold shadow-sm">
+            <a href="dashboard.php" class="btn btn-sm btn-outline-secondary px-3 fw-bold shadow-sm">
                 <i class="bi bi-arrow-left me-1"></i> VOLVER AL PANEL
             </a>
         </div>
@@ -55,7 +55,6 @@ $defectos = $pdo->query("SELECT * FROM catalogo_defectos ORDER BY nombre_defecto
                         </div>
                     </div>
                 </div>
-
                 <div class="card-captura p-4 mb-4">
                     <h6 class="fw-bold text-primary mb-3">2. GRAVEDAD DEL DEFECTO</h6>
                     <div class="d-flex gap-3">
@@ -67,7 +66,6 @@ $defectos = $pdo->query("SELECT * FROM catalogo_defectos ORDER BY nombre_defecto
                         <label class="btn btn-outline-danger w-100 fw-bold py-2" for="sev_alta">ALTA</label>
                     </div>
                 </div>
-
                 <div class="card-captura p-4">
                     <h6 class="fw-bold text-primary mb-3">3. COMPONENTES DEL CATÁLOGO</h6>
                     <div id="gridPiezas" class="row g-2"></div>
@@ -100,25 +98,8 @@ $defectos = $pdo->query("SELECT * FROM catalogo_defectos ORDER BY nombre_defecto
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
 let scrapItems = [];
-const dbName = "RegalOfflineDB";
-const storeName = "folios_pendientes";
 
-// 1. Mantenemos la apertura de DB para poder GUARDAR localmente si falla la red
-function abrirDB() {
-    return new Promise((resolve, reject) => {
-        const request = indexedDB.open(dbName, 1);
-        request.onupgradeneeded = e => {
-            const db = e.target.result;
-            if (!db.objectStoreNames.contains(storeName)) {
-                db.createObjectStore(storeName, { keyPath: "id", autoIncrement: true });
-            }
-        };
-        request.onsuccess = e => resolve(e.target.result);
-        request.onerror = e => reject(e.target.error);
-    });
-}
-
-// 2. Interceptamos el envío: si hay red se va normal, si no, se guarda en IndexedDB
+// Usar la función global definida en sync.js para evitar conflictos de versión
 document.getElementById('formCaptura').addEventListener('submit', async function(e) {
     if (scrapItems.length === 0) { e.preventDefault(); alert('Seleccione componentes.'); return; }
     
@@ -126,21 +107,22 @@ document.getElementById('formCaptura').addEventListener('submit', async function
         e.preventDefault();
         const formData = new FormData(this);
         const data = Object.fromEntries(formData.entries());
-        
-        // Adjuntamos piezas y usuario de sesión para que el envío global funcione después
         data.piezas_id = scrapItems.map(i => i.id);
         data.piezas_cant = scrapItems.map(i => i.qty);
         data.id_usuario_apertura = "<?= $_SESSION['user_id'] ?>"; 
 
-        const db = await abrirDB();
-        const tx = db.transaction(storeName, "readwrite");
-        await tx.objectStore(storeName).add(data);
-        alert("⚠️ Sin conexión. El folio se guardó localmente y se enviará automáticamente al recuperar red.");
-        window.location.href = 'dashboard.php';
+        try {
+            const db = await abrirDBSync(); // Llamada a la función de sync.js
+            const tx = db.transaction("folios_pendientes", "readwrite");
+            await tx.objectStore("folios_pendientes").add(data);
+            alert("⚠️ Guardado localmente. Se enviará automáticamente al recuperar red.");
+            window.location.href = 'dashboard.php';
+        } catch (err) {
+            console.error("Error al guardar localmente:", err);
+        }
     }
 });
 
-// 3. Lógica de selección de piezas y cantidades (MANTENIDA)
 function cargarPiezas(tipo) {
     const grid = document.getElementById('gridPiezas');
     scrapItems = []; renderScrap();
@@ -168,38 +150,24 @@ function renderScrap() {
     const container = document.getElementById('listaScrap');
     const hidden = document.getElementById('hiddenFields');
     document.querySelectorAll('.btn-pieza-item').forEach(btn => btn.classList.replace('active-pieza','btn-outline-secondary'));
-    
-    if (scrapItems.length === 0) { 
-        container.innerHTML = '<p class="text-center text-muted py-5 small">Seleccione componentes...</p>'; 
-        hidden.innerHTML = ""; 
-        return; 
-    }
-    
-    container.innerHTML = ""; 
-    hidden.innerHTML = "";
-    
+    if (scrapItems.length === 0) { container.innerHTML = '<p class="text-center text-muted py-5 small">Seleccione componentes...</p>'; hidden.innerHTML = ""; return; }
+    container.innerHTML = ""; hidden.innerHTML = "";
     scrapItems.forEach(item => {
         const btn = document.getElementById(`btn-pieza-${item.id}`);
         if(btn) btn.classList.add('active-pieza');
-        
         container.innerHTML += `
             <div class="item-scrap d-flex justify-content-between align-items-center">
                 <div class="d-flex align-items-center" style="width: 85%;">
-                    <input type="number" class="form-control form-control-sm me-2 text-center" 
-                           style="width: 45px; height: 24px;" value="${item.qty}" min="1" 
-                           onchange="updateQty('${item.id}', this.value)">
+                    <input type="number" class="form-control form-control-sm me-2 text-center" style="width: 45px; height: 24px;" value="${item.qty}" min="1" onchange="updateQty('${item.id}', this.value)">
                     <span class="text-truncate fw-semibold small">${item.nombre}</span>
                 </div>
                 <button type="button" class="btn btn-sm text-danger" onclick="toggleScrap('${item.id}')">×</button>
             </div>`;
-            
         hidden.innerHTML += `<input type="hidden" name="piezas_id[]" value="${item.id}"><input type="hidden" name="piezas_cant[]" value="${item.qty}">`;
     });
 }
 
-window.onload = () => { 
-    cargarPiezas('Balero'); 
-};
+window.onload = () => { cargarPiezas('Balero'); };
 </script>
 </body>
 </html>
