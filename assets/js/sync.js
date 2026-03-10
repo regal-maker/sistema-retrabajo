@@ -1,19 +1,19 @@
-// Configuración global de la base de datos local
+// Configuración de la base de datos local
 const DB_NAME_SYNC = "RegalOfflineDB";
 const STORE_NAME_SYNC = "folios_pendientes";
-const DB_VERSION = 2; // Unificamos a versión 2 para evitar el VersionError
 let bloqueoSincronizacion = false;
 
 function abrirDBSync() {
     return new Promise((resolve, reject) => {
-        const request = indexedDB.open(DB_NAME_SYNC, DB_VERSION);
+        // Subimos la versión a 2 para forzar la actualización
+        const request = indexedDB.open("RegalOfflineDB", 2); 
 
-        // Se ejecuta si la versión en el navegador es menor o no existe
         request.onupgradeneeded = e => {
             const db = e.target.result;
-            if (!db.objectStoreNames.contains(STORE_NAME_SYNC)) {
-                db.createObjectStore(STORE_NAME_SYNC, { keyPath: "id", autoIncrement: true });
-                console.log("Estructura de IndexedDB creada con éxito.");
+            // Si el almacén no existe, lo creamos aquí
+            if (!db.objectStoreNames.contains("folios_pendientes")) {
+                db.createObjectStore("folios_pendientes", { keyPath: "id", autoIncrement: true });
+                console.log("Almacén 'folios_pendientes' creado con éxito.");
             }
         };
 
@@ -27,6 +27,9 @@ async function procesarSincronizacionGlobal() {
     
     try {
         const db = await abrirDBSync();
+        // Verificamos si existe el almacen de objetos antes de continuar
+        if (!db.objectStoreNames.contains(STORE_NAME_SYNC)) return;
+
         const tx = db.transaction(STORE_NAME_SYNC, "readonly");
         const store = tx.objectStore(STORE_NAME_SYNC);
         const req = store.getAll();
@@ -36,7 +39,7 @@ async function procesarSincronizacionGlobal() {
             if (folios.length === 0) return;
 
             bloqueoSincronizacion = true;
-            console.log(`Sincronizando ${folios.length} folios pendientes...`);
+            console.log(`Sincronización automática: ${folios.length} pendientes.`);
 
             for (const folio of folios) {
                 const formData = new FormData();
@@ -61,7 +64,7 @@ async function procesarSincronizacionGlobal() {
             }
             bloqueoSincronizacion = false;
             
-            // Recargar si el usuario está en la página de monitoreo para ver los cambios
+            // Si el usuario está en tickets_abiertos.php, recargar para mostrar los nuevos datos
             if (window.location.pathname.includes('tickets_abiertos.php')) {
                 window.location.reload();
             }
@@ -69,5 +72,7 @@ async function procesarSincronizacionGlobal() {
     } catch (e) { bloqueoSincronizacion = false; }
 }
 
+// Escuchadores globales
 window.addEventListener('online', () => setTimeout(procesarSincronizacionGlobal, 2000));
+
 window.addEventListener('load', procesarSincronizacionGlobal);

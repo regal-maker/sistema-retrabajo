@@ -9,6 +9,8 @@
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#004a99">
 
+<script src="assets/js/sync.js"></script>
+
 <script>
   // Registrar el Service Worker
   if ('serviceWorker' in navigator) {
@@ -20,4 +22,5 @@
       });
     });
   }
+
 </script>
