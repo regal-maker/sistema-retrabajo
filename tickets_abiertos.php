@@ -62,12 +62,13 @@ async function cargarTickets() {
 // 1. Cargar inmediatamente al entrar
 cargarTickets();
 
-// 2. Refrescar cada 10 segundos
-setInterval(cargarTickets, 10000);
+// 2. Refrescar cada 5 segundos
+setInterval(cargarTickets, 5000);
 
 function finalizar(id) { if(confirm('¿Cerrar folio?')) window.location.href = `backend/cerrar_ticket.php?id=${id}`; }
 </script>
 </body>
 </html>
+
 
 
