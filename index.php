@@ -1,7 +1,8 @@
 <?php
 session_start();
 if (isset($_SESSION['user_id'])) {
-    header("Location: dashboard.php");
+    header("Location: dashboard
+");
     exit();
 }
 // Evitar caché para que no se queden datos en el navegador del operador
@@ -83,3 +84,4 @@ header("Pragma: no-cache");
 </script>
 </body>
 </html>
+
