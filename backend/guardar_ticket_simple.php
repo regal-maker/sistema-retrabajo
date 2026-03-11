@@ -36,9 +36,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             }
         }
 
-        $pdo->commit();
-        // Redirigimos afuera
-        header("Location: ../dashboard.php?success=1&folio=" . $folio);
-    } catch (Exception $e) { $pdo->rollBack(); die("Error: " . $e->getMessage()); }
-}
+        // Guardamos los datos en la sesión, NO en la URL
+$_SESSION['mensaje_exito'] = "Folio " . $folio . " generado correctamente.";
+
+// Redirigimos a la ruta LIMPIA
+header("Location: ../dashboard"); 
+exit();
 ?>
