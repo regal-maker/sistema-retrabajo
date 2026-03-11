@@ -37,7 +37,7 @@ header("Pragma: no-cache");
             <?php endif; ?>
         </div>
 
-        <form id="loginForm" action="backend/auth.php" method="POST" autocomplete="off">
+        <form id="loginForm" action="backend/auth" method="POST" autocomplete="off">
             <div class="mb-3">
                 <label class="form-label small fw-bold">Código de Empleado</label>
                 <input type="password" name="codigo_credencial" id="inputUser" 
@@ -84,4 +84,5 @@ header("Pragma: no-cache");
 </script>
 </body>
 </html>
+
 
