@@ -1,7 +1,7 @@
 <nav class="navbar navbar-dark p-2 mb-4 sticky-top navbar-custom">
     <div class="container-fluid px-4">
         
-        <a class="navbar-brand d-flex align-items-center" href="dashboard.php">
+        <a class="navbar-brand d-flex align-items-center" href="dashboard">
             <img src="assets/img/RRX_Logo_White_GreenLeaf.png" alt="Regal Rexnord" style="height: 35px; width: auto; max-width: 150px; object-fit: contain;">
         </a>
 
@@ -19,7 +19,7 @@
                 </span>
             </div>
                         
-            <a href="dashboard.php" class="btn btn-outline-light btn-sm fw-bold" style="font-size: 0.7rem; padding: 4px 12px; border-radius: 6px;">
+            <a href="dashboard" class="btn btn-outline-light btn-sm fw-bold" style="font-size: 0.7rem; padding: 4px 12px; border-radius: 6px;">
                 <i class="bi bi-house-door-fill me-1"></i> Inicio
             </a>
 
@@ -30,6 +30,7 @@
     </div>
 
 </nav>
+
 
 
 
