@@ -30,7 +30,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['user_rol'] = $usuario['rol'];
 
             // Redirigir al dashboard
-            header("Location: ../dashboard.php");
+            header("Location: ../dashboard");
             exit();
         } else {
             // Error: Datos no coinciden
@@ -49,3 +49,4 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     header("Location: ../index.php");
     exit();
 }
+
