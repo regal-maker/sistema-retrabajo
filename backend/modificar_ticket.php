@@ -4,10 +4,11 @@ require_once '../config/conexion.php';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['id_ticket'])) {
     $id = $_POST['id_ticket'];
-    $motor = $_POST['motor'];
+    $motor = trim($_POST['motor']);
     $tipo = $_POST['tipo'];
 
     try {
+        // Actualizamos id_motor y tipo_motor_captura que son los datos clave del ticket
         $stmt = $pdo->prepare("UPDATE tickets SET 
                                 id_motor = :motor, 
                                 tipo_motor_captura = :tipo 
@@ -23,6 +24,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['id_ticket'])) {
         exit();
 
     } catch (PDOException $e) {
-        die("Error al modificar el ticket: " . $e->getMessage());
+        // Log del error para depuración
+        error_log("Error en modificar_ticket: " . $e->getMessage());
+        header("Location: ../tickets_abiertos.php?msg=error_edit");
+        exit();
     }
+} else {
+    header("Location: ../tickets_abiertos.php");
+    exit();
 }
