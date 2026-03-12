@@ -165,7 +165,7 @@ function finalizar(id) {
         showCancelButton: true,
         confirmButtonColor: '#d33',
         cancelButtonColor: '#6c757d',
-        confirmButtonText: 'Sí, cancelar por error',
+        confirmButtonText: 'Sí, cancelar',
         cancelButtonText: 'No, mantener'
     }).then((result) => {
         if (result.isConfirmed) {
@@ -188,5 +188,6 @@ function finalizar(id) {
 </script>
 </body>
 </html>
+
 
 
