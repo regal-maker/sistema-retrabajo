@@ -160,7 +160,7 @@ function finalizar(id) {
     function cancelarTicket(id) {
     Swal.fire({
         title: '¿Cancelar ticket?',
-        text: "Esta acción marcará el ticket como generado por error y desaparecerá de la lista.",
+        text: "Esta acción marcará el ticket como Cancelado.",
         icon: 'error',
         showCancelButton: true,
         confirmButtonColor: '#d33',
@@ -188,4 +188,5 @@ function finalizar(id) {
 </script>
 </body>
 </html>
+
 
