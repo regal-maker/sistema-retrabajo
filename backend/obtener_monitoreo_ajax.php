@@ -80,6 +80,10 @@ foreach($tickets as $t):
                     <button class="btn btn-outline-danger btn-sm fw-bold" onclick="cancelarTicket(<?php echo $t['id']; ?>)">
                         <i class="bi bi-x-circle"></i> CANCELAR
                     </button>
+                 <button class="btn btn-outline-primary btn-sm fw-bold" 
+                    onclick="editarTicket(<?php echo $t['id']; ?>, '<?php echo $t['id_motor']; ?>', '<?php echo $t['tipo_motor_captura']; ?>')">
+                <i class="bi bi-pencil-square"></i> EDITAR
+            </button>
                 </div>
                 </div>
 
