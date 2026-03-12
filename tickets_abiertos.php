@@ -186,8 +186,25 @@ function finalizar(id) {
     })
 }
 </script>
+    <script>
+// Detectar mensajes de éxito en la URL
+const urlParams = new URLSearchParams(window.location.search);
+if (urlParams.has('msg')) {
+    const msg = urlParams.get('msg');
+    
+    if (msg === 'success_cierre') {
+        Swal.fire('¡Cerrado!', 'El ticket se ha guardado correctamente.', 'success');
+    } else if (msg === 'success_cancel') {
+        Swal.fire('Cancelado', 'El ticket ha sido marcado como error.', 'info');
+    }
+    
+    // Limpiar la URL para que no repita el mensaje al refrescar
+    window.history.replaceState({}, document.title, window.location.pathname);
+}
+</script>
 </body>
 </html>
+
 
 
 
