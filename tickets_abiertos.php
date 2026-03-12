@@ -9,11 +9,13 @@ if (!isset($_SESSION['user_id'])) { header("Location: index.php"); exit(); }
     <meta charset="UTF-8">
     <title>Mis Tickets | Regal Rexnord</title>
     <?php include 'includes/header.php'; ?>
+    
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
     <style>
         :root { --regal-blue: #00539b; --regal-gray: #f8f9fa; }
         body { background-color: #f4f7f6; }
 
-        /* Diseño de Tarjeta de Ticket */
         .card-ticket { 
             border: none; 
             border-radius: 12px; 
@@ -25,7 +27,6 @@ if (!isset($_SESSION['user_id'])) { header("Location: index.php"); exit(); }
         }
         .card-ticket:hover { transform: scale(1.01); box-shadow: 0 6px 15px rgba(0,0,0,0.12); }
 
-        /* Estilo de las Piezas */
         .pieza-tag { 
             background: #eef2f7; 
             color: #334e68; 
@@ -38,7 +39,6 @@ if (!isset($_SESSION['user_id'])) { header("Location: index.php"); exit(); }
             margin: 2px;
         }
 
-        /* Tiempo y Badges */
         .tiempo-contenedor { text-align: center; border-right: 1px solid #eee; }
         .tiempo-valor { font-size: 1.4rem; font-weight: 800; color: #2d3748; display: block; line-height: 1; }
         .tiempo-label { font-size: 0.65rem; text-transform: uppercase; color: #a0aec0; letter-spacing: 1px; }
@@ -52,7 +52,6 @@ if (!isset($_SESSION['user_id'])) { header("Location: index.php"); exit(); }
             font-weight: bold;
         }
 
-        /* Estados de Alerta */
         .border-alerta { border-left-color: #ffc107 !important; } 
         .border-critico { border-left-color: #dc3545 !important; animation: pulse-red 2s infinite; } 
         @keyframes pulse-red { 
@@ -94,7 +93,7 @@ if (!isset($_SESSION['user_id'])) { header("Location: index.php"); exit(); }
 async function cargarTickets() {
     const contenedor = document.getElementById('contenedor-tickets');
     const loader = document.getElementById('loading-indicator');
-    loader.classList.remove('d-none');
+    if(loader) loader.classList.remove('d-none');
 
     try {
         const response = await fetch('backend/obtener_monitoreo_ajax.php');
@@ -104,23 +103,25 @@ async function cargarTickets() {
         console.error("Error:", error);
         contenedor.innerHTML = '<div class="alert alert-danger">Error de conexión con el servidor.</div>';
     } finally {
-        loader.classList.add('d-none');
+        if(loader) loader.classList.add('d-none');
     }
 }
 
-// Carga inicial y repetición cada 10 seg
 cargarTickets();
 setInterval(cargarTickets, 10000);
 
 function finalizar(id) {
+    // Verificamos si Swal está cargado antes de llamar
+    if (typeof Swal === 'undefined') {
+        alert("Error: Librería de confirmación no cargada.");
+        return;
+    }
+
     Swal.fire({
         title: '¿Concluir folio?',
-        text: "Por favor, ingresa la conclusión del cierre (¿Se arregló el problema del motor?)",
+        text: "¿Se arregló el problema del motor referente a este ticket?",
         input: 'textarea',
-        inputPlaceholder: 'Escribe aquí los detalles de la reparación...',
-        inputAttributes: {
-            'aria-label': 'Escribe tu conclusión'
-        },
+        inputPlaceholder: 'Escribe aquí la conclusión o detalles del cierre...',
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: '#198754',
@@ -129,15 +130,15 @@ function finalizar(id) {
         cancelButtonText: 'Cancelar',
         inputValidator: (value) => {
             if (!value) {
-                return '¡Debes escribir una conclusión para cerrar el ticket!'
+                return '¡Es obligatorio escribir una conclusión!'
             }
         }
     }).then((result) => {
         if (result.isConfirmed) {
-            // Creamos un formulario dinámico para enviar los datos por POST
+            // Crear el formulario para enviar por POST
             const form = document.createElement('form');
             form.method = 'POST';
-            form.action = 'backend/cerrar_ticket.php'; // Ajusta la ruta a tu archivo PHP
+            form.action = 'backend/cerrar_ticket.php';
 
             const idInput = document.createElement('input');
             idInput.type = 'hidden';
@@ -154,9 +155,8 @@ function finalizar(id) {
             document.body.appendChild(form);
             form.submit();
         }
-    })
+    });
 }
 </script>
 </body>
 </html>
-
