@@ -193,9 +193,9 @@ if (urlParams.has('msg')) {
     const msg = urlParams.get('msg');
     
     if (msg === 'success_cierre') {
-        Swal.fire('¡Cerrado!', 'El ticket se ha guardado correctamente.', 'success');
+        Swal.fire('¡Cerrado!', 'El Ticket Se ha Cerrado Correctamente.', 'success');
     } else if (msg === 'success_cancel') {
-        Swal.fire('Cancelado', 'El ticket ha sido marcado como error.', 'info');
+        Swal.fire('Cancelado', 'El Ticket Ha Sido Cancelado con Exito .', 'info');
     }
     
     // Limpiar la URL para que no repita el mensaje al refrescar
@@ -204,6 +204,7 @@ if (urlParams.has('msg')) {
 </script>
 </body>
 </html>
+
 
 
 
