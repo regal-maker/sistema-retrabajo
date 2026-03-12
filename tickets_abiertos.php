@@ -157,6 +157,35 @@ function finalizar(id) {
         }
     });
 }
+    function cancelarTicket(id) {
+    Swal.fire({
+        title: '¿Cancelar ticket?',
+        text: "Esta acción marcará el ticket como generado por error y desaparecerá de la lista.",
+        icon: 'error',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Sí, cancelar por error',
+        cancelButtonText: 'No, mantener'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Enviamos la petición por POST
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = 'backend/cancelar_ticket.php';
+
+            const idInput = document.createElement('input');
+            idInput.type = 'hidden';
+            idInput.name = 'id_ticket';
+            idInput.value = id;
+
+            form.appendChild(idInput);
+            document.body.appendChild(form);
+            form.submit();
+        }
+    })
+}
 </script>
 </body>
 </html>
+
