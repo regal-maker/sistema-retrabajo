@@ -1,122 +1,52 @@
-<?php 
-$pagina_actual = 'Tickets en Estación';
-session_start();
-if (!isset($_SESSION['user_id'])) { header("Location: index.php"); exit(); }
+<?php
+// Supongamos que aquí haces tu consulta SQL: 
+// $tickets = $db->query("SELECT * FROM tickets WHERE estado='abierto'")->fetchAll();
+
+// Simulacro de datos para el ejemplo
+$tickets = [
+    [
+        'id' => 4502, 
+        'piezas' => '1x Bote / Mainframe, 2x Soporte Lateral, 1x Kit Tornillería', 
+        'minutos_totales' => 135 // Ejemplo: 2 horas y 15 min
+    ]
+];
+
+foreach ($tickets as $t) {
+    // CAMBIO: Conversión de minutos a Horas y Minutos
+    $horas = floor($t['minutos_totales'] / 60);
+    $minutos = $t['minutos_totales'] % 60;
+    
+    $display_tiempo = ($horas > 0) ? "{$horas}h {$minutos}m" : "{$minutos}m";
+    $clase_alerta = ($t['minutos_totales'] > 120) ? 'border-critico' : ''; // Rojo si pasa 2 horas
 ?>
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <title>Mis Tickets | Regal Rexnord</title>
-    <?php include 'includes/header.php'; ?>
-    <style>
-        :root { --regal-blue: #00539b; --regal-gray: #f8f9fa; }
-        body { background-color: #f4f7f6; }
+    <div class="col-12 mb-3">
+        <div class="card card-ticket p-0 <?php echo $clase_alerta; ?>">
+            <div class="row g-0 align-items-center">
+                <div class="col-md-2 tiempo-box">
+                    <span class="tiempo-label">Transcurrido</span>
+                    <span class="tiempo-valor"><?php echo $display_tiempo; ?></span>
+                    <span class="badge bg-secondary mt-1">FOLIO #<?php echo $t['id']; ?></span>
+                </div>
 
-        /* Diseño de Tarjeta de Ticket */
-        .card-ticket { 
-            border: none; 
-            border-radius: 12px; 
-            background: white; 
-            box-shadow: 0 4px 12px rgba(0,0,0,0.08); 
-            border-left: 7px solid var(--regal-blue); 
-            margin-bottom: 15px;
-            transition: all 0.3s ease;
-        }
-        .card-ticket:hover { transform: scale(1.01); box-shadow: 0 6px 15px rgba(0,0,0,0.12); }
+                <div class="col-md-7 p-3">
+                    <div class="text-uppercase text-muted small fw-bold mb-2" style="letter-spacing: 0.5px;">Materiales en proceso</div>
+                    <div class="pieza-container">
+                        <?php 
+                        $lista = explode(',', $t['piezas']);
+                        foreach($lista as $p): ?>
+                            <div class="pieza-badge">
+                                <i class="bi bi-component"></i> <?php echo trim($p); ?>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
 
-        /* Estilo de las Piezas */
-        .pieza-tag { 
-            background: #eef2f7; 
-            color: #334e68; 
-            border: 1px solid #d1d9e6;
-            padding: 5px 12px; 
-            border-radius: 50px; 
-            font-size: 0.85rem; 
-            font-weight: 600;
-            display: inline-block;
-            margin: 2px;
-        }
-
-        /* Tiempo y Badges */
-        .tiempo-contenedor { text-align: center; border-right: 1px solid #eee; }
-        .tiempo-valor { font-size: 1.4rem; font-weight: 800; color: #2d3748; display: block; line-height: 1; }
-        .tiempo-label { font-size: 0.65rem; text-transform: uppercase; color: #a0aec0; letter-spacing: 1px; }
-        
-        .folio-badge { 
-            background: var(--regal-blue); 
-            color: white; 
-            font-size: 0.75rem; 
-            padding: 3px 10px; 
-            border-radius: 4px; 
-            font-weight: bold;
-        }
-
-        /* Estados de Alerta */
-        .border-alerta { border-left-color: #ffc107 !important; } 
-        .border-critico { border-left-color: #dc3545 !important; animation: pulse-red 2s infinite; } 
-        @keyframes pulse-red { 
-            0% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.4); } 
-            70% { box-shadow: 0 0 0 10px rgba(220, 53, 69, 0); } 
-            100% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0); } 
-        }
-    </style>
-</head>
-<body>
-<?php include 'includes/navbar.php'; ?>
-
-<div class="container-fluid px-4">
-    <div class="row mt-4 mb-3 align-items-center">
-        <div class="col-md-6">
-            <a href="panel_principal.php" class="btn btn-sm btn-outline-secondary px-3 fw-bold shadow-sm">
-                <i class="bi bi-arrow-left me-1"></i> VOLVER AL PANEL
-            </a>
-            <h4 class="d-inline-block ms-3 fw-bold text-dark">Monitoreo de Estación</h4>
-        </div>
-        <div class="col-md-6 text-end">
-            <div id="loading-indicator" class="spinner-border spinner-border-sm text-primary d-none" role="status"></div>
-            <span class="badge bg-light text-dark border ms-2">
-                <i class="bi bi-arrow-repeat me-1"></i> Actualización: 10s
-            </span>
+                <div class="col-md-3 text-center p-3">
+                    <button onclick="finalizar(<?php echo $t['id']; ?>)" class="btn btn-primary btn-lg rounded-pill px-4 shadow-sm fw-bold">
+                        FINALIZAR <i class="bi bi-check2-circle ms-1"></i>
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
-
-    <div class="row" id="contenedor-tickets">
-        <div class="col-12 text-center py-5">
-            <div class="spinner-border text-primary" role="status"></div>
-            <p class="mt-2 text-muted">Sincronizando con la línea de producción...</p>
-        </div>
-    </div>
-</div>
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script>
-async function cargarTickets() {
-    const contenedor = document.getElementById('contenedor-tickets');
-    const loader = document.getElementById('loading-indicator');
-    loader.classList.remove('d-none');
-
-    try {
-        const response = await fetch('backend/obtener_monitoreo_ajax.php');
-        const html = await response.text();
-        contenedor.innerHTML = html;
-    } catch (error) {
-        console.error("Error:", error);
-        contenedor.innerHTML = '<div class="alert alert-danger">Error de conexión con el servidor.</div>';
-    } finally {
-        loader.classList.add('d-none');
-    }
-}
-
-// Carga inicial y repetición cada 10 seg
-cargarTickets();
-setInterval(cargarTickets, 10000);
-
-function finalizar(id) { 
-    if(confirm('¿Confirmas que el trabajo en este folio ha terminado?')) {
-        window.location.href = `backend/cerrar_ticket.php?id=${id}`; 
-    }
-}
-</script>
-</body>
-</html>
+<?php } ?>
