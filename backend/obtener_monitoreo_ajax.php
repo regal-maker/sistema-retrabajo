@@ -72,12 +72,15 @@ foreach($tickets as $t):
                         <small class="text-muted d-block" style="font-size: 0.6rem;">OPERADOR</small>
                         <span class="fw-bold small"><?php echo $t['operador']; ?></span>
                     </div>
-
-                    <div class="col-md-2 text-center d-flex flex-column gap-1">
-                        <button class="btn btn-success btn-sm fw-bold shadow-sm" onclick="finalizar(<?php echo $t['id']; ?>)">
-                            <i class="bi bi-check-circle"></i> CERRAR
-                        </button>
-                    </div>
+                        <div class="col-md-2 text-center d-flex flex-column gap-2">
+                    <button class="btn btn-success btn-sm fw-bold shadow-sm" onclick="finalizar(<?php echo $t['id']; ?>)">
+                        <i class="bi bi-check-circle"></i> CERRAR
+                    </button>
+                    
+                    <button class="btn btn-outline-danger btn-sm fw-bold" onclick="cancelarTicket(<?php echo $t['id']; ?>)">
+                        <i class="bi bi-x-circle"></i> CANCELAR
+                    </button>
+                </div>
                 </div>
 
                 <div class="collapse" id="collapse-<?php echo $t['id']; ?>">
