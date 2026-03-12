@@ -6,36 +6,85 @@ if (!isset($_SESSION['user_id'])) { header("Location: index.php"); exit(); }
 <!DOCTYPE html>
 <html lang="es">
 <head>
+    <meta charset="UTF-8">
     <title>Mis Tickets | Regal Rexnord</title>
     <?php include 'includes/header.php'; ?>
     <style>
-        .card-horizontal { border: none; border-radius: 8px; background: white; box-shadow: 0 2px 6px rgba(0,0,0,0.05); border-left: 5px solid var(--regal-blue); margin-bottom: 8px; }
-        .border-alerta { border-left: 8px solid #ffc107 !important; } 
-        .border-critico { border-left: 8px solid #dc3545 !important; animation: blink-red 2s infinite; } 
-        @keyframes blink-red { 50% { box-shadow: 0 0 10px rgba(220, 53, 69, 0.5); } }
-        .folio-badge { background: #e9ecef; color: var(--regal-blue); font-weight: bold; font-size: 0.7rem; padding: 2px 8px; border-radius: 4px; }
+        :root { --regal-blue: #00539b; --regal-gray: #f8f9fa; }
+        body { background-color: #f4f7f6; }
+
+        /* Diseño de Tarjeta de Ticket */
+        .card-ticket { 
+            border: none; 
+            border-radius: 12px; 
+            background: white; 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08); 
+            border-left: 7px solid var(--regal-blue); 
+            margin-bottom: 15px;
+            transition: all 0.3s ease;
+        }
+        .card-ticket:hover { transform: scale(1.01); box-shadow: 0 6px 15px rgba(0,0,0,0.12); }
+
+        /* Estilo de las Piezas */
+        .pieza-tag { 
+            background: #eef2f7; 
+            color: #334e68; 
+            border: 1px solid #d1d9e6;
+            padding: 5px 12px; 
+            border-radius: 50px; 
+            font-size: 0.85rem; 
+            font-weight: 600;
+            display: inline-block;
+            margin: 2px;
+        }
+
+        /* Tiempo y Badges */
+        .tiempo-contenedor { text-align: center; border-right: 1px solid #eee; }
+        .tiempo-valor { font-size: 1.4rem; font-weight: 800; color: #2d3748; display: block; line-height: 1; }
+        .tiempo-label { font-size: 0.65rem; text-transform: uppercase; color: #a0aec0; letter-spacing: 1px; }
+        
+        .folio-badge { 
+            background: var(--regal-blue); 
+            color: white; 
+            font-size: 0.75rem; 
+            padding: 3px 10px; 
+            border-radius: 4px; 
+            font-weight: bold;
+        }
+
+        /* Estados de Alerta */
+        .border-alerta { border-left-color: #ffc107 !important; } 
+        .border-critico { border-left-color: #dc3545 !important; animation: pulse-red 2s infinite; } 
+        @keyframes pulse-red { 
+            0% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.4); } 
+            70% { box-shadow: 0 0 0 10px rgba(220, 53, 69, 0); } 
+            100% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0); } 
+        }
     </style>
 </head>
 <body>
 <?php include 'includes/navbar.php'; ?>
 
 <div class="container-fluid px-4">
-    <div class="row mt-3 mb-3 align-items-center">
+    <div class="row mt-4 mb-3 align-items-center">
         <div class="col-md-6">
-            <a href="panel_principal.php" class="btn btn-sm btn-outline-secondary px-3 fw-bold">
+            <a href="panel_principal.php" class="btn btn-sm btn-outline-secondary px-3 fw-bold shadow-sm">
                 <i class="bi bi-arrow-left me-1"></i> VOLVER AL PANEL
             </a>
+            <h4 class="d-inline-block ms-3 fw-bold text-dark">Monitoreo de Estación</h4>
         </div>
         <div class="col-md-6 text-end">
             <div id="loading-indicator" class="spinner-border spinner-border-sm text-primary d-none" role="status"></div>
-            <small class="text-muted ms-2">Auto-actualización activa (10s)</small>
+            <span class="badge bg-light text-dark border ms-2">
+                <i class="bi bi-arrow-repeat me-1"></i> Actualización: 10s
+            </span>
         </div>
     </div>
 
     <div class="row" id="contenedor-tickets">
         <div class="col-12 text-center py-5">
             <div class="spinner-border text-primary" role="status"></div>
-            <p class="mt-2">Cargando tus tickets...</p>
+            <p class="mt-2 text-muted">Sincronizando con la línea de producción...</p>
         </div>
     </div>
 </div>
@@ -45,29 +94,29 @@ if (!isset($_SESSION['user_id'])) { header("Location: index.php"); exit(); }
 async function cargarTickets() {
     const contenedor = document.getElementById('contenedor-tickets');
     const loader = document.getElementById('loading-indicator');
-    
-    loader.classList.remove('d-none'); // Mostrar mini spinner
+    loader.classList.remove('d-none');
 
     try {
         const response = await fetch('backend/obtener_monitoreo_ajax.php');
         const html = await response.text();
         contenedor.innerHTML = html;
     } catch (error) {
-        console.error("Error al refrescar tickets:", error);
+        console.error("Error:", error);
+        contenedor.innerHTML = '<div class="alert alert-danger">Error de conexión con el servidor.</div>';
     } finally {
-        loader.classList.add('d-none'); // Ocultar mini spinner
+        loader.classList.add('d-none');
     }
 }
 
-// 1. Cargar inmediatamente al entrar
+// Carga inicial y repetición cada 10 seg
 cargarTickets();
-
-// 2. Refrescar cada 10 segundos
 setInterval(cargarTickets, 10000);
 
-function finalizar(id) { if(confirm('¿Cerrar folio?')) window.location.href = `backend/cerrar_ticket.php?id=${id}`; }
+function finalizar(id) { 
+    if(confirm('¿Confirmas que el trabajo en este folio ha terminado?')) {
+        window.location.href = `backend/cerrar_ticket.php?id=${id}`; 
+    }
+}
 </script>
 </body>
 </html>
-
-
