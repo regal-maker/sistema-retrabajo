@@ -34,10 +34,8 @@ foreach($tickets as $t):
     if ($fecha_actual < $fecha_inicio) $fecha_actual = $fecha_inicio;
     $diff = $fecha_actual->diff($fecha_inicio);
     
-    // Cálculo de minutos totales para semáforo
     $minutos_total = ($diff->days * 24 * 60) + ($diff->h * 60) + $diff->i;
 
-    // LÓGICA DE TIEMPO TRANSURRIDO (Horas y Minutos)
     $horas_t = floor($minutos_total / 60);
     $minutos_t = $minutos_total % 60;
     $tiempo_display = ($horas_t > 0) ? "{$horas_t}h {$minutos_t}m" : "{$minutos_t}m";
@@ -72,19 +70,21 @@ foreach($tickets as $t):
                         <small class="text-muted d-block" style="font-size: 0.6rem;">OPERADOR</small>
                         <span class="fw-bold small"><?php echo $t['operador']; ?></span>
                     </div>
-                        <div class="col-md-2 text-center d-flex flex-column gap-2">
-                    <button class="btn btn-success btn-sm fw-bold shadow-sm" onclick="finalizar(<?php echo $t['id']; ?>)">
-                        <i class="bi bi-check-circle"></i> CERRAR
-                    </button>
-                    
-                    <button class="btn btn-outline-danger btn-sm fw-bold" onclick="cancelarTicket(<?php echo $t['id']; ?>)">
-                        <i class="bi bi-x-circle"></i> CANCELAR
-                    </button>
-                 <button class="btn btn-outline-primary btn-sm fw-bold" 
-                    onclick="editarTicket(<?php echo $t['id']; ?>, '<?php echo $t['id_motor']; ?>', '<?php echo $t['tipo_motor_captura']; ?>')">
-                <i class="bi bi-pencil-square"></i> EDITAR
-            </button>
-                </div>
+
+                    <div class="col-md-2 text-center d-flex flex-column gap-2">
+                        <button class="btn btn-success btn-sm fw-bold shadow-sm" onclick="finalizar(<?php echo $t['id']; ?>)">
+                            <i class="bi bi-check-circle"></i> CERRAR
+                        </button>
+                        
+                        <button class="btn btn-outline-primary btn-sm fw-bold" 
+                            onclick="editarTicket(<?php echo $t['id']; ?>, '<?php echo addslashes($t['id_motor']); ?>', '<?php echo addslashes($t['tipo_motor_captura']); ?>')">
+                            <i class="bi bi-pencil-square"></i> EDITAR
+                        </button>
+
+                        <button class="btn btn-outline-danger btn-sm fw-bold" onclick="cancelarTicket(<?php echo $t['id']; ?>)">
+                            <i class="bi bi-x-circle"></i> CANCELAR
+                        </button>
+                    </div>
                 </div>
 
                 <div class="collapse" id="collapse-<?php echo $t['id']; ?>">
