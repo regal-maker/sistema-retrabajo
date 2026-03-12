@@ -9,7 +9,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['id_ticket'])) {
         // Actualizamos el estado a 'Cancelado'
         $stmt = $pdo->prepare("UPDATE tickets SET 
                                 estado = 'Cancelado', 
-                                comentarios_cierre = 'CANCELADO POR ERROR', 
+                                comentarios_cierre = 'Este ticket fue cancelado', 
                                 fecha_cierre = NOW() 
                                 WHERE id = ?");
         
@@ -25,3 +25,4 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['id_ticket'])) {
     header("Location: ../tickets_abiertos.php");
     exit();
 }
+
