@@ -202,8 +202,59 @@ if (urlParams.has('msg')) {
     window.history.replaceState({}, document.title, window.location.pathname);
 }
 </script>
+ <script>
+     function editarTicket(id, motorActual, tipoActual) {
+    Swal.fire({
+        title: 'Modificar Información del Ticket',
+        html: `
+            <div class="text-start">
+                <label class="form-label small fw-bold">ID MOTOR / MODELO:</label>
+                <input id="swal-motor" class="form-control mb-3" value="${motorActual}">
+                
+                <label class="form-label small fw-bold">TIPO DE MOTOR:</label>
+                <select id="swal-tipo" class="form-select">
+                    <option value="AC" ${tipoActual === 'AC' ? 'selected' : ''}>AC</option>
+                    <option value="DC" ${tipoActual === 'DC' ? 'selected' : ''}>DC</option>
+                    <option value="STEPPER" ${tipoActual === 'STEPPER' ? 'selected' : ''}>STEPPER</option>
+                </select>
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'Guardar Cambios',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#00539b',
+        preConfirm: () => {
+            const nuevoMotor = document.getElementById('swal-motor').value;
+            const nuevoTipo = document.getElementById('swal-tipo').value;
+            if (!nuevoMotor) {
+                Swal.showValidationMessage('El ID del motor es obligatorio');
+            }
+            return { id_ticket: id, motor: nuevoMotor, tipo: nuevoTipo };
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Enviamos por POST mediante un formulario dinámico
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = 'backend/modificar_ticket.php';
+
+            Object.keys(result.value).forEach(key => {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = key;
+                input.value = result.value[key];
+                form.appendChild(input);
+            });
+
+            document.body.appendChild(form);
+            form.submit();
+        }
+    });
+}
+ </script>
 </body>
 </html>
+
 
 
 
