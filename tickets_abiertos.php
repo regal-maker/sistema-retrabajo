@@ -112,11 +112,51 @@ async function cargarTickets() {
 cargarTickets();
 setInterval(cargarTickets, 10000);
 
-function finalizar(id) { 
-    if(confirm('¿Confirmas que el trabajo en este folio ha terminado?')) {
-        window.location.href = `backend/cerrar_ticket.php?id=${id}`; 
-    }
+function finalizar(id) {
+    Swal.fire({
+        title: '¿Concluir folio?',
+        text: "Por favor, ingresa la conclusión del cierre (¿Se arregló el problema del motor?)",
+        input: 'textarea',
+        inputPlaceholder: 'Escribe aquí los detalles de la reparación...',
+        inputAttributes: {
+            'aria-label': 'Escribe tu conclusión'
+        },
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#198754',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Sí, cerrar ticket',
+        cancelButtonText: 'Cancelar',
+        inputValidator: (value) => {
+            if (!value) {
+                return '¡Debes escribir una conclusión para cerrar el ticket!'
+            }
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Creamos un formulario dinámico para enviar los datos por POST
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = 'backend/cerrar_ticket.php'; // Ajusta la ruta a tu archivo PHP
+
+            const idInput = document.createElement('input');
+            idInput.type = 'hidden';
+            idInput.name = 'id_ticket';
+            idInput.value = id;
+
+            const conclusionInput = document.createElement('input');
+            conclusionInput.type = 'hidden';
+            conclusionInput.name = 'conclusion';
+            conclusionInput.value = result.value;
+
+            form.appendChild(idInput);
+            form.appendChild(conclusionInput);
+            document.body.appendChild(form);
+            form.submit();
+        }
+    })
 }
 </script>
 </body>
 </html>
+
