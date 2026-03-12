@@ -110,13 +110,8 @@ async function cargarTickets() {
 cargarTickets();
 setInterval(cargarTickets, 10000);
 
+// Función Cerrar Ticket
 function finalizar(id) {
-    // Verificamos si Swal está cargado antes de llamar
-    if (typeof Swal === 'undefined') {
-        alert("Error: Librería de confirmación no cargada.");
-        return;
-    }
-
     Swal.fire({
         title: '¿Concluir folio?',
         text: "¿Se arregló el problema del motor referente a este ticket?",
@@ -129,35 +124,28 @@ function finalizar(id) {
         confirmButtonText: 'Sí, cerrar ticket',
         cancelButtonText: 'Cancelar',
         inputValidator: (value) => {
-            if (!value) {
-                return '¡Es obligatorio escribir una conclusión!'
-            }
+            if (!value) { return '¡Es obligatorio escribir una conclusión!' }
         }
     }).then((result) => {
         if (result.isConfirmed) {
-            // Crear el formulario para enviar por POST
             const form = document.createElement('form');
             form.method = 'POST';
             form.action = 'backend/cerrar_ticket.php';
 
             const idInput = document.createElement('input');
-            idInput.type = 'hidden';
-            idInput.name = 'id_ticket';
-            idInput.value = id;
-
+            idInput.type = 'hidden'; idInput.name = 'id_ticket'; idInput.value = id;
             const conclusionInput = document.createElement('input');
-            conclusionInput.type = 'hidden';
-            conclusionInput.name = 'conclusion';
-            conclusionInput.value = result.value;
+            conclusionInput.type = 'hidden'; conclusionInput.name = 'conclusion'; conclusionInput.value = result.value;
 
-            form.appendChild(idInput);
-            form.appendChild(conclusionInput);
+            form.appendChild(idInput); form.appendChild(conclusionInput);
             document.body.appendChild(form);
             form.submit();
         }
     });
 }
-    function cancelarTicket(id) {
+
+// Función Cancelar Ticket
+function cancelarTicket(id) {
     Swal.fire({
         title: '¿Cancelar ticket?',
         text: "Esta acción marcará el ticket como Cancelado.",
@@ -169,53 +157,33 @@ function finalizar(id) {
         cancelButtonText: 'No, mantener'
     }).then((result) => {
         if (result.isConfirmed) {
-            // Enviamos la petición por POST
             const form = document.createElement('form');
             form.method = 'POST';
             form.action = 'backend/cancelar_ticket.php';
-
             const idInput = document.createElement('input');
-            idInput.type = 'hidden';
-            idInput.name = 'id_ticket';
-            idInput.value = id;
-
+            idInput.type = 'hidden'; idInput.name = 'id_ticket'; idInput.value = id;
             form.appendChild(idInput);
             document.body.appendChild(form);
             form.submit();
         }
     })
 }
-</script>
-    <script>
-// Detectar mensajes de éxito en la URL
-const urlParams = new URLSearchParams(window.location.search);
-if (urlParams.has('msg')) {
-    const msg = urlParams.get('msg');
-    
-    if (msg === 'success_cierre') {
-        Swal.fire('¡Cerrado!', 'El Ticket Se ha Cerrado Correctamente.', 'success');
-    } else if (msg === 'success_cancel') {
-        Swal.fire('Cancelado', 'El Ticket Ha Sido Cancelado con Exito .', 'info');
-    }
-    
-    // Limpiar la URL para que no repita el mensaje al refrescar
-    window.history.replaceState({}, document.title, window.location.pathname);
-}
-</script>
- <script>
-     function editarTicket(id, motorActual, tipoActual) {
+
+// Función Editar Ticket (MODIFICADA)
+function editarTicket(id, motorActual, tipoActual) {
     Swal.fire({
         title: 'Modificar Información del Ticket',
         html: `
-            <div class="text-start">
-                <label class="form-label small fw-bold">ID MOTOR / MODELO:</label>
-                <input id="swal-motor" class="form-control mb-3" value="${motorActual}">
+            <div class="text-start px-2">
+                <label class="form-label small fw-bold">MODELO / ID MOTOR:</label>
+                <input id="swal-motor" class="form-control mb-3 fw-bold" value="${motorActual}" style="color: var(--regal-blue);">
                 
                 <label class="form-label small fw-bold">TIPO DE MOTOR:</label>
                 <select id="swal-tipo" class="form-select">
                     <option value="AC" ${tipoActual === 'AC' ? 'selected' : ''}>AC</option>
                     <option value="DC" ${tipoActual === 'DC' ? 'selected' : ''}>DC</option>
                     <option value="STEPPER" ${tipoActual === 'STEPPER' ? 'selected' : ''}>STEPPER</option>
+                    <option value="BALERO" ${tipoActual === 'BALERO' ? 'selected' : ''}>BALERO</option>
                 </select>
             </div>
         `,
@@ -228,12 +196,12 @@ if (urlParams.has('msg')) {
             const nuevoTipo = document.getElementById('swal-tipo').value;
             if (!nuevoMotor) {
                 Swal.showValidationMessage('El ID del motor es obligatorio');
+                return false;
             }
             return { id_ticket: id, motor: nuevoMotor, tipo: nuevoTipo };
         }
     }).then((result) => {
         if (result.isConfirmed) {
-            // Enviamos por POST mediante un formulario dinámico
             const form = document.createElement('form');
             form.method = 'POST';
             form.action = 'backend/modificar_ticket.php';
@@ -251,12 +219,16 @@ if (urlParams.has('msg')) {
         }
     });
 }
- </script>
+
+// Manejo de mensajes por URL
+const urlParams = new URLSearchParams(window.location.search);
+if (urlParams.has('msg')) {
+    const msg = urlParams.get('msg');
+    if (msg === 'success_cierre') Swal.fire('¡Cerrado!', 'El Ticket se ha cerrado correctamente.', 'success');
+    else if (msg === 'success_cancel') Swal.fire('Cancelado', 'El Ticket ha sido cancelado.', 'info');
+    else if (msg === 'success_edit') Swal.fire('Actualizado', 'La información se modificó correctamente.', 'success');
+    window.history.replaceState({}, document.title, window.location.pathname);
+}
+</script>
 </body>
 </html>
-
-
-
-
-
-
