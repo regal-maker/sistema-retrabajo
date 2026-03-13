@@ -9,6 +9,7 @@ $user_id = $_SESSION['user_id'];
 $where_clauses = ["t.estado = 'Abierto'", "t.id_usuario_apertura = :user_id"];
 $params = ['user_id' => $user_id];
 
+// Agregamos t.severidad, t.cantidad_motores y t.id_defecto a la consulta
 $sql = "SELECT t.*, d.nombre_defecto, u.nombre as operador,
         (SELECT GROUP_CONCAT(CONCAT(tp.cantidad, 'x ', cp.descripcion) SEPARATOR '||') 
          FROM ticket_piezas tp JOIN catalogo_piezas cp ON tp.id_pieza = cp.id 
@@ -33,7 +34,6 @@ foreach($tickets as $t):
     $fecha_actual = new DateTime();
     if ($fecha_actual < $fecha_inicio) $fecha_actual = $fecha_inicio;
     $diff = $fecha_actual->diff($fecha_inicio);
-    
     $minutos_total = ($diff->days * 24 * 60) + ($diff->h * 60) + $diff->i;
 
     $horas_t = floor($minutos_total / 60);
@@ -43,6 +43,9 @@ foreach($tickets as $t):
     $clase_semaforo = "";
     if ($minutos_total >= 60 && $minutos_total < 120) $clase_semaforo = "border-alerta";
     elseif ($minutos_total >= 120) $clase_semaforo = "border-critico";
+
+    // Escapamos strings para JS
+    $id_motor_js = addslashes($t['id_motor']);
 ?>
     <div class="col-lg-12">
         <div class="card card-ticket <?php echo $clase_semaforo; ?> mb-2 shadow-sm">
@@ -55,7 +58,7 @@ foreach($tickets as $t):
                     </div>
                     
                     <div class="col-md-3 border-end">
-                        <small class="text-muted fw-bold d-block" style="font-size: 0.6rem;">MOTOR / MODELO</small>
+                        <small class="text-muted fw-bold d-block" style="font-size: 0.6rem;">MOTOR / MODELO (x<?php echo $t['cantidad_motores']; ?>)</small>
                         <div class="serie-txt" style="font-size: 1.1rem; font-weight: 800;"><?php echo $t['id_motor']; ?></div>
                     </div>
 
@@ -77,7 +80,7 @@ foreach($tickets as $t):
                         </button>
                         
                         <button class="btn btn-outline-primary btn-sm fw-bold" 
-                            onclick="editarTicket(<?php echo $t['id']; ?>, '<?php echo addslashes($t['id_motor']); ?>', '<?php echo addslashes($t['tipo_motor_captura']); ?>')">
+                            onclick="editarTicket(<?php echo $t['id']; ?>, '<?php echo $id_motor_js; ?>', '<?php echo $t['tipo_motor_captura']; ?>', '<?php echo $t['severidad']; ?>', <?php echo $t['cantidad_motores']; ?>, <?php echo $t['id_defecto']; ?>)">
                             <i class="bi bi-pencil-square"></i> EDITAR
                         </button>
 
@@ -88,20 +91,15 @@ foreach($tickets as $t):
                 </div>
 
                 <div class="collapse" id="collapse-<?php echo $t['id']; ?>">
-                    <div class="mt-2 bg-light p-3 border rounded shadow-inner">
-                        <small class="d-block text-muted mb-2 fw-bold" style="font-size: 0.65rem; letter-spacing: 0.5px;">MATERIALES REGISTRADOS:</small>
+                    <div class="mt-2 bg-light p-3 border rounded">
                         <div class="d-flex flex-wrap gap-2">
                             <?php 
                             if(!empty($t['piezas_detalle'])){
                                 $piezas = explode('||', $t['piezas_detalle']);
                                 foreach($piezas as $p): ?>
-                                    <span class="pieza-tag">
-                                        <i class="bi bi-gear-fill me-1" style="font-size: 0.7rem;"></i> <?php echo $p; ?>
-                                    </span>
+                                    <span class="pieza-tag"><i class="bi bi-gear-fill me-1"></i> <?php echo $p; ?></span>
                                 <?php endforeach;
-                            } else { 
-                                echo "<span class='text-muted small'>Sin piezas registradas.</span>"; 
-                            }
+                            } else { echo "<span class='text-muted small'>Sin piezas registradas.</span>"; }
                             ?>
                         </div>
                     </div>
