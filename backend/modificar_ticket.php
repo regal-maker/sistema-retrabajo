@@ -13,21 +13,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['id_ticket'])) {
     try {
         $pdo->beginTransaction();
 
-        // 1. Actualizar datos generales
+        // 1. Actualizar tabla principal
         $stmt = $pdo->prepare("UPDATE tickets SET id_motor = ?, tipo_motor_captura = ?, cantidad_motores = ?, severidad = ?, id_defecto = ? WHERE id = ?");
         $stmt->execute([$motor, $tipo, $cantidad, $severidad, $id_defecto, $id]);
 
-        // 2. ELIMINAR piezas anteriores para este ticket
+        // 2. Limpiar piezas previas
         $stmt_del = $pdo->prepare("DELETE FROM ticket_piezas WHERE id_ticket = ?");
         $stmt_del->execute([$id]);
 
-        // 3. INSERTAR las nuevas piezas seleccionadas
+        // 3. Insertar nuevas piezas
         if (!empty($_POST['piezas_id'])) {
-            $sql_ins = "INSERT INTO ticket_piezas (id_ticket, id_pieza, cantidad) VALUES (?, ?, ?)";
-            $stmt_ins = $pdo->prepare($sql_ins);
-            foreach ($_POST['piezas_id'] as $index => $pieza_id) {
-                $qty = $_POST['piezas_cant'][$index];
-                $stmt_ins->execute([$id, $pieza_id, $qty]);
+            $stmt_ins = $pdo->prepare("INSERT INTO ticket_piezas (id_ticket, id_pieza, cantidad) VALUES (?, ?, ?)");
+            foreach ($_POST['piezas_id'] as $index => $p_id) {
+                $p_qty = $_POST['piezas_cant'][$index];
+                $stmt_ins->execute([$id, $p_id, $p_qty]);
             }
         }
 
@@ -37,6 +36,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['id_ticket'])) {
 
     } catch (PDOException $e) {
         $pdo->rollBack();
-        die("Error: " . $e->getMessage());
+        error_log("Error en modificar_ticket: " . $e->getMessage());
+        header("Location: ../tickets_abiertos.php?msg=error_edit");
+        exit();
     }
 }
