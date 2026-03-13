@@ -1,0 +1,3 @@
+<?php
+include('../config/conexion.php');
+echo json_encode($pdo->query("SELECT id, nombre_defecto FROM catalogo_defectos ORDER BY nombre_defecto ASC")->fetchAll(PDO::FETCH_ASSOC));
