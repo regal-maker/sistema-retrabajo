@@ -20,8 +20,8 @@ if (!isset($_SESSION['user_id'])) { header("Location: index.php"); exit(); }
         .border-alerta { border-left-color: #ffc107 !important; } 
         .border-critico { border-left-color: #dc3545 !important; animation: pulse-red 2s infinite; } 
         @keyframes pulse-red { 0% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.4); } 70% { box-shadow: 0 0 0 10px rgba(220, 53, 69, 0); } 100% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0); } }
-        /* Estilos para el grid de piezas en edición */
         .btn-pieza-edit { font-size: 0.7rem; padding: 8px 4px; font-weight: bold; height: 100%; transition: 0.2s; }
+        .resumen-edit-item { background: #fff; border-left: 3px solid var(--regal-blue); padding: 5px 10px; margin-bottom: 4px; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); display: flex; align-items: center; }
     </style>
 </head>
 <body>
@@ -53,7 +53,7 @@ if (!isset($_SESSION['user_id'])) { header("Location: index.php"); exit(); }
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-let editScrapItems = []; // Almacena piezas seleccionadas en el modal
+let editScrapItems = []; 
 
 async function cargarTickets() {
     const contenedor = document.getElementById('contenedor-tickets');
@@ -65,7 +65,6 @@ async function cargarTickets() {
         contenedor.innerHTML = html;
     } catch (error) {
         console.error("Error:", error);
-        contenedor.innerHTML = '<div class="alert alert-danger">Error de conexión.</div>';
     } finally {
         if(loader) loader.classList.add('d-none');
     }
@@ -84,31 +83,27 @@ function finalizar(id) {
         showCancelButton: true,
         confirmButtonColor: '#198754',
         confirmButtonText: 'Sí, cerrar ticket',
-        inputValidator: (value) => { if (!value) return '¡Debes escribir una conclusión!' }
+        inputValidator: (value) => { if (!value) return '¡Es obligatorio escribir una conclusión!' }
     }).then((result) => {
-        if (result.isConfirmed) {
-            enviarForm('backend/cerrar_ticket.php', { id_ticket: id, conclusion: result.value });
-        }
+        if (result.isConfirmed) enviarForm('backend/cerrar_ticket.php', { id_ticket: id, conclusion: result.value });
     });
 }
 
 function cancelarTicket(id) {
     Swal.fire({
         title: '¿Cancelar ticket?',
-        text: "Se marcará como Cancelado.",
+        text: "Esta acción marcará el ticket como Cancelado.",
         icon: 'error',
         showCancelButton: true,
         confirmButtonColor: '#d33',
         confirmButtonText: 'Sí, cancelar'
     }).then((result) => {
-        if (result.isConfirmed) {
-            enviarForm('backend/cancelar_ticket.php', { id_ticket: id });
-        }
-    });
+        if (result.isConfirmed) enviarForm('backend/cancelar_ticket.php', { id_ticket: id });
+    })
 }
 
 function editarTicket(id, motorActual, tipoActual, severidadActual, cantidadActual, defectoActualId) {
-    editScrapItems = []; // Resetear lista de piezas al abrir
+    editScrapItems = []; 
 
     Swal.fire({
         title: 'MODIFICAR TICKET COMPLETO',
@@ -149,12 +144,14 @@ function editarTicket(id, motorActual, tipoActual, severidadActual, cantidadActu
                     </div>
                 </div>
 
-                <label class="form-label small fw-bold text-primary">3. COMPONENTES (Haz clic para seleccionar/quitar)</label>
-                <div id="gridPiezasEdicion" class="row g-2 mb-3 border rounded p-2 bg-light" style="max-height: 180px; overflow-y: auto;"></div>
+                <label class="form-label small fw-bold text-primary">3. COMPONENTES DEL CATÁLOGO</label>
+                <div id="gridPiezasEdicion" class="row g-2 mb-3 border rounded p-2 bg-light" style="max-height: 160px; overflow-y: auto;"></div>
+
+                <div id="resumenCantidadesEdit" class="mb-3"></div>
 
                 <div class="mb-2">
-                    <label class="form-label small fw-bold">TIPO DE DEFECTO PRINCIPAL</label>
-                    <select id="edit-defecto" class="form-select border-primary"></select>
+                    <label class="form-label small fw-bold text-danger">DEFECTO PRINCIPAL</label>
+                    <select id="edit-defecto" class="form-select border-danger"></select>
                 </div>
             </div>
         `,
@@ -174,7 +171,7 @@ function editarTicket(id, motorActual, tipoActual, severidadActual, cantidadActu
         confirmButtonText: 'GUARDAR CAMBIOS',
         confirmButtonColor: '#00539b',
         preConfirm: () => {
-            if (editScrapItems.length === 0) { Swal.showValidationMessage('Selecciona al menos una pieza'); return false; }
+            if (editScrapItems.length === 0) { Swal.showValidationMessage('Selecciona al menos una pieza scrap'); return false; }
             return {
                 id_ticket: id,
                 motor: document.getElementById('edit-modelo').value,
@@ -193,29 +190,52 @@ function editarTicket(id, motorActual, tipoActual, severidadActual, cantidadActu
 
 function cargarPiezasEdicion(idTicket, tipo) {
     const grid = document.getElementById('gridPiezasEdicion');
-    grid.innerHTML = '<div class="text-center w-100 small py-3">Cargando componentes...</div>';
+    grid.innerHTML = '<div class="text-center w-100 small py-2">Cargando...</div>';
     fetch(`backend/obtener_piezas_ticket.php?id_ticket=${idTicket}&tipo=${tipo}`).then(res => res.json()).then(data => {
         grid.innerHTML = "";
         if(editScrapItems.length === 0) {
-            for (let id_p in data.asignadas) { editScrapItems.push({ id: id_p, qty: data.asignadas[id_p] }); }
+            for (let id_p in data.asignadas) { 
+                const pInfo = data.catalogo.find(c => c.id == id_p);
+                editScrapItems.push({ id: id_p, nombre: pInfo ? pInfo.descripcion : 'Pieza', qty: data.asignadas[id_p] }); 
+            }
         }
         data.catalogo.forEach(p => {
             const isActive = editScrapItems.find(i => i.id == p.id);
-            grid.innerHTML += `<div class="col-md-3"><button type="button" class="btn btn-sm w-100 btn-pieza-edit ${isActive ? 'btn-primary' : 'btn-outline-secondary'}" id="btn-edit-p-${p.id}" onclick="togglePiezaEdicion('${p.id}')">${p.descripcion}</button></div>`;
+            grid.innerHTML += `<div class="col-md-3"><button type="button" class="btn btn-sm w-100 btn-pieza-edit ${isActive ? 'btn-primary' : 'btn-outline-secondary'}" id="btn-edit-p-${p.id}" onclick="togglePiezaEdicion('${p.id}', '${p.descripcion}')">${p.descripcion}</button></div>`;
         });
+        renderResumenEdicion();
     });
 }
 
-function togglePiezaEdicion(id) {
+function togglePiezaEdicion(id, nombre) {
     const idx = editScrapItems.findIndex(i => i.id == id);
     const btn = document.getElementById(`btn-edit-p-${id}`);
     if (idx > -1) {
         editScrapItems.splice(idx, 1);
-        btn.classList.replace('btn-primary', 'btn-outline-secondary');
+        if(btn) btn.classList.replace('btn-primary', 'btn-outline-secondary');
     } else {
-        editScrapItems.push({ id: id, qty: 1 });
-        btn.classList.replace('btn-outline-secondary', 'btn-primary');
+        editScrapItems.push({ id: id, nombre: nombre, qty: 1 });
+        if(btn) btn.classList.replace('btn-outline-secondary', 'btn-primary');
     }
+    renderResumenEdicion();
+}
+
+function renderResumenEdicion() {
+    const container = document.getElementById('resumenCantidadesEdit');
+    if(editScrapItems.length === 0) { container.innerHTML = ""; return; }
+    container.innerHTML = '<label class="form-label small fw-bold mb-2 mt-2">CANTIDADES POR PIEZA:</label>';
+    editScrapItems.forEach(item => {
+        container.innerHTML += `
+            <div class="resumen-edit-item">
+                <input type="number" class="form-control form-control-sm me-2" style="width: 55px" value="${item.qty}" min="1" onchange="updateEditQty('${item.id}', this.value)">
+                <span class="small fw-semibold text-truncate">${item.nombre}</span>
+            </div>`;
+    });
+}
+
+function updateEditQty(id, val) {
+    const item = editScrapItems.find(i => i.id == id);
+    if(item) item.qty = Math.max(1, parseInt(val) || 1);
 }
 
 function enviarForm(action, data) {
@@ -238,12 +258,11 @@ function enviarForm(action, data) {
     form.submit();
 }
 
-// Mensajes URL
 const urlParams = new URLSearchParams(window.location.search);
 if (urlParams.has('msg')) {
     const msg = urlParams.get('msg');
     if (msg === 'success_edit') Swal.fire('Actualizado', 'Ticket modificado con éxito', 'success');
-    else if (msg === 'success_cierre') Swal.fire('Cerrado', 'Ticket concluido', 'success');
+    else if (msg === 'success_cierre') Swal.fire('¡Cerrado!', 'Ticket concluido', 'success');
     else if (msg === 'success_cancel') Swal.fire('Cancelado', 'Ticket anulado', 'info');
     window.history.replaceState({}, document.title, window.location.pathname);
 }
