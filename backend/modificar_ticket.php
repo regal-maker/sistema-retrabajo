@@ -2,42 +2,41 @@
 session_start();
 require_once '../config/conexion.php'; 
 
-// Verificamos que lleguen los datos con los nombres exactos del preConfirm de Swal
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['id_ticket'])) {
-    
     $id = $_POST['id_ticket'];
     $motor = trim($_POST['motor']);
-    $cantidad = $_POST['cantidad'];
     $tipo = $_POST['tipo'];
+    $cantidad = $_POST['cantidad'];
     $severidad = $_POST['severidad'];
     $id_defecto = $_POST['id_defecto'];
 
     try {
-        $sql = "UPDATE tickets SET 
-                id_motor = :motor, 
-                cantidad_motores = :cantidad,
-                tipo_motor_captura = :tipo,
-                severidad = :severidad,
-                id_defecto = :id_defecto
-                WHERE id = :id";
-        
-        $stmt = $pdo->prepare($sql);
-        $stmt->execute([
-            ':motor'      => $motor,
-            ':cantidad'   => $cantidad,
-            ':tipo'       => $tipo,
-            ':severidad'  => $severidad,
-            ':id_defecto' => $id_defecto,
-            ':id'         => $id
-        ]);
+        $pdo->beginTransaction();
 
+        // 1. Actualizar datos generales
+        $stmt = $pdo->prepare("UPDATE tickets SET id_motor = ?, tipo_motor_captura = ?, cantidad_motores = ?, severidad = ?, id_defecto = ? WHERE id = ?");
+        $stmt->execute([$motor, $tipo, $cantidad, $severidad, $id_defecto, $id]);
+
+        // 2. ELIMINAR piezas anteriores para este ticket
+        $stmt_del = $pdo->prepare("DELETE FROM ticket_piezas WHERE id_ticket = ?");
+        $stmt_del->execute([$id]);
+
+        // 3. INSERTAR las nuevas piezas seleccionadas
+        if (!empty($_POST['piezas_id'])) {
+            $sql_ins = "INSERT INTO ticket_piezas (id_ticket, id_pieza, cantidad) VALUES (?, ?, ?)";
+            $stmt_ins = $pdo->prepare($sql_ins);
+            foreach ($_POST['piezas_id'] as $index => $pieza_id) {
+                $qty = $_POST['piezas_cant'][$index];
+                $stmt_ins->execute([$id, $pieza_id, $qty]);
+            }
+        }
+
+        $pdo->commit();
         header("Location: ../tickets_abiertos.php?msg=success_edit");
         exit();
 
     } catch (PDOException $e) {
-        die("Error al actualizar: " . $e->getMessage());
+        $pdo->rollBack();
+        die("Error: " . $e->getMessage());
     }
-} else {
-    header("Location: ../tickets_abiertos.php");
-    exit();
 }
