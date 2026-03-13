@@ -86,8 +86,6 @@ if (!isset($_SESSION['user_id'])) { header("Location: index.php"); exit(); }
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-// --- BLOQUE DE JAVASCRIPT UNIFICADO ---
-
 async function cargarTickets() {
     const contenedor = document.getElementById('contenedor-tickets');
     const loader = document.getElementById('loading-indicator');
@@ -105,7 +103,6 @@ async function cargarTickets() {
     }
 }
 
-// Iniciar carga
 cargarTickets();
 setInterval(cargarTickets, 10000);
 
@@ -129,12 +126,10 @@ function finalizar(id) {
             const form = document.createElement('form');
             form.method = 'POST';
             form.action = 'backend/cerrar_ticket.php';
-
             const idInput = document.createElement('input');
             idInput.type = 'hidden'; idInput.name = 'id_ticket'; idInput.value = id;
             const conclusionInput = document.createElement('input');
             conclusionInput.type = 'hidden'; conclusionInput.name = 'conclusion'; conclusionInput.value = result.value;
-
             form.appendChild(idInput); form.appendChild(conclusionInput);
             document.body.appendChild(form);
             form.submit();
@@ -163,7 +158,7 @@ function cancelarTicket(id) {
             document.body.appendChild(form);
             form.submit();
         }
-    });
+    })
 }
 
 function editarTicket(id, motorActual, tipoActual, severidadActual, cantidadActual, defectoActualId) {
@@ -215,7 +210,10 @@ function editarTicket(id, motorActual, tipoActual, severidadActual, cantidadActu
         `,
         didOpen: () => {
             fetch('backend/obtener_defectos_json.php')
-                .then(res => res.json())
+                .then(res => {
+                    if (!res.ok) throw new Error('Error al cargar catálogo');
+                    return res.json();
+                })
                 .then(data => {
                     const select = document.getElementById('edit-defecto');
                     select.innerHTML = '';
@@ -226,6 +224,10 @@ function editarTicket(id, motorActual, tipoActual, severidadActual, cantidadActu
                         if(d.id == defectoActualId) opt.selected = true;
                         select.appendChild(opt);
                     });
+                })
+                .catch(err => {
+                    console.error(err);
+                    document.getElementById('edit-defecto').innerHTML = '<option>Error al cargar catálogo</option>';
                 });
         },
         showCancelButton: true,
