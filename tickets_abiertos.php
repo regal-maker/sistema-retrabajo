@@ -39,10 +39,6 @@ if (!isset($_SESSION['user_id'])) { header("Location: index.php"); exit(); }
             margin: 2px;
         }
 
-        .tiempo-contenedor { text-align: center; border-right: 1px solid #eee; }
-        .tiempo-valor { font-size: 1.4rem; font-weight: 800; color: #2d3748; display: block; line-height: 1; }
-        .tiempo-label { font-size: 0.65rem; text-transform: uppercase; color: #a0aec0; letter-spacing: 1px; }
-        
         .folio-badge { 
             background: var(--regal-blue); 
             color: white; 
@@ -90,6 +86,8 @@ if (!isset($_SESSION['user_id'])) { header("Location: index.php"); exit(); }
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
+// --- BLOQUE DE JAVASCRIPT UNIFICADO ---
+
 async function cargarTickets() {
     const contenedor = document.getElementById('contenedor-tickets');
     const loader = document.getElementById('loading-indicator');
@@ -107,10 +105,10 @@ async function cargarTickets() {
     }
 }
 
+// Iniciar carga
 cargarTickets();
 setInterval(cargarTickets, 10000);
 
-// Función Cerrar Ticket
 function finalizar(id) {
     Swal.fire({
         title: '¿Concluir folio?',
@@ -144,7 +142,6 @@ function finalizar(id) {
     });
 }
 
-// Función Cancelar Ticket
 function cancelarTicket(id) {
     Swal.fire({
         title: '¿Cancelar ticket?',
@@ -166,16 +163,10 @@ function cancelarTicket(id) {
             document.body.appendChild(form);
             form.submit();
         }
-    })
+    });
 }
 
-<script>
-// ... tus funciones cargarTickets, finalizar y cancelarTicket se mantienen igual ...
-
 function editarTicket(id, motorActual, tipoActual, severidadActual, cantidadActual, defectoActualId) {
-    // Obtenemos los nombres de las piezas para mostrar como referencia
-    const piezasInfo = document.querySelector(`#collapse-${id} .mt-2`) ? document.querySelector(`#collapse-${id} .mt-2`).innerText : "Sin piezas";
-
     Swal.fire({
         title: 'MODIFICAR TICKET',
         width: '650px',
@@ -223,7 +214,6 @@ function editarTicket(id, motorActual, tipoActual, severidadActual, cantidadActu
             </div>
         `,
         didOpen: () => {
-            // Cargamos dinámicamente los defectos para poder elegir otro si es necesario
             fetch('backend/obtener_defectos_json.php')
                 .then(res => res.json())
                 .then(data => {
@@ -256,13 +246,11 @@ function editarTicket(id, motorActual, tipoActual, severidadActual, cantidadActu
             const form = document.createElement('form');
             form.method = 'POST';
             form.action = 'backend/modificar_ticket.php';
-
             Object.keys(result.value).forEach(key => {
                 const input = document.createElement('input');
                 input.type = 'hidden'; input.name = key; input.value = result.value[key];
                 form.appendChild(input);
             });
-
             document.body.appendChild(form);
             form.submit();
         }
@@ -281,4 +269,3 @@ if (urlParams.has('msg')) {
 </script>
 </body>
 </html>
-
