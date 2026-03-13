@@ -169,36 +169,87 @@ function cancelarTicket(id) {
     })
 }
 
-// Función Editar Ticket (MODIFICADA)
-function editarTicket(id, motorActual, tipoActual) {
+<script>
+// ... tus funciones cargarTickets, finalizar y cancelarTicket se mantienen igual ...
+
+function editarTicket(id, motorActual, tipoActual, severidadActual, cantidadActual, defectoActualId) {
+    // Obtenemos los nombres de las piezas para mostrar como referencia
+    const piezasInfo = document.querySelector(`#collapse-${id} .mt-2`) ? document.querySelector(`#collapse-${id} .mt-2`).innerText : "Sin piezas";
+
     Swal.fire({
-        title: 'Modificar Información del Ticket',
+        title: 'MODIFICAR TICKET',
+        width: '650px',
         html: `
-            <div class="text-start px-2">
-                <label class="form-label small fw-bold">MODELO / ID MOTOR:</label>
-                <input id="swal-motor" class="form-control mb-3 fw-bold" value="${motorActual}" style="color: var(--regal-blue);">
-                
-                <label class="form-label small fw-bold">TIPO DE MOTOR:</label>
-                <select id="swal-tipo" class="form-select">
-                    <option value="AC" ${tipoActual === 'AC' ? 'selected' : ''}>AC</option>
-                    <option value="DC" ${tipoActual === 'DC' ? 'selected' : ''}>DC</option>
-                    <option value="STEPPER" ${tipoActual === 'STEPPER' ? 'selected' : ''}>STEPPER</option>
-                    <option value="BALERO" ${tipoActual === 'BALERO' ? 'selected' : ''}>BALERO</option>
-                </select>
+            <div class="text-start p-2">
+                <div class="row g-3 mb-3">
+                    <div class="col-md-8">
+                        <label class="form-label small fw-bold">NÚMERO DE SERIE / MODELO</label>
+                        <input type="text" id="edit-modelo" class="form-control border-primary fw-bold" value="${motorActual}">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold">CANTIDAD</label>
+                        <input type="number" id="edit-cantidad" class="form-control" value="${cantidadActual}" min="1">
+                    </div>
+                </div>
+
+                <div class="mt-3">
+                    <label class="form-label small fw-bold text-primary">TIPO DE CONFIGURACIÓN</label>
+                    <div class="d-flex gap-2">
+                        <input type="radio" class="btn-check" name="edit-tipo" id="edit-balero" value="Balero" ${tipoActual === 'Balero' ? 'checked' : ''}>
+                        <label class="btn btn-outline-primary w-100 fw-bold" for="edit-balero">BALERO</label>
+                        <input type="radio" class="btn-check" name="edit-tipo" id="edit-buje" value="Buje" ${tipoActual === 'Buje' ? 'checked' : ''}>
+                        <label class="btn btn-outline-primary w-100 fw-bold" for="edit-buje">BUJE</label>
+                    </div>
+                </div>
+
+                <div class="mt-3">
+                    <label class="form-label small fw-bold text-primary">GRAVEDAD DEL DEFECTO</label>
+                    <div class="d-flex gap-2">
+                        <input type="radio" class="btn-check" name="edit-sev" id="edit-baja" value="Baja" ${severidadActual === 'Baja' ? 'checked' : ''}>
+                        <label class="btn btn-outline-success w-100 fw-bold" for="edit-baja">BAJA</label>
+                        <input type="radio" class="btn-check" name="edit-sev" id="edit-media" value="Media" ${severidadActual === 'Media' ? 'checked' : ''}>
+                        <label class="btn btn-outline-warning w-100 fw-bold" for="edit-media">MEDIA</label>
+                        <input type="radio" class="btn-check" name="edit-sev" id="edit-alta" value="Alta" ${severidadActual === 'Alta' ? 'checked' : ''}>
+                        <label class="btn btn-outline-danger w-100 fw-bold" for="edit-alta">ALTA</label>
+                    </div>
+                </div>
+
+                <div class="mt-3">
+                    <label class="form-label small fw-bold">TIPO DE DEFECTO PRINCIPAL</label>
+                    <select id="edit-defecto" class="form-select">
+                        <option value="">Cargando catálogo...</option>
+                    </select>
+                </div>
             </div>
         `,
+        didOpen: () => {
+            // Cargamos dinámicamente los defectos para poder elegir otro si es necesario
+            fetch('backend/obtener_defectos_json.php')
+                .then(res => res.json())
+                .then(data => {
+                    const select = document.getElementById('edit-defecto');
+                    select.innerHTML = '';
+                    data.forEach(d => {
+                        const opt = document.createElement('option');
+                        opt.value = d.id;
+                        opt.text = d.nombre_defecto;
+                        if(d.id == defectoActualId) opt.selected = true;
+                        select.appendChild(opt);
+                    });
+                });
+        },
         showCancelButton: true,
-        confirmButtonText: 'Guardar Cambios',
-        cancelButtonText: 'Cancelar',
+        confirmButtonText: 'GUARDAR CAMBIOS',
         confirmButtonColor: '#00539b',
         preConfirm: () => {
-            const nuevoMotor = document.getElementById('swal-motor').value;
-            const nuevoTipo = document.getElementById('swal-tipo').value;
-            if (!nuevoMotor) {
-                Swal.showValidationMessage('El ID del motor es obligatorio');
-                return false;
-            }
-            return { id_ticket: id, motor: nuevoMotor, tipo: nuevoTipo };
+            return {
+                id_ticket: id,
+                motor: document.getElementById('edit-modelo').value,
+                cantidad: document.getElementById('edit-cantidad').value,
+                tipo: document.querySelector('input[name="edit-tipo"]:checked').value,
+                severidad: document.querySelector('input[name="edit-sev"]:checked').value,
+                id_defecto: document.getElementById('edit-defecto').value
+            };
         }
     }).then((result) => {
         if (result.isConfirmed) {
@@ -208,9 +259,7 @@ function editarTicket(id, motorActual, tipoActual) {
 
             Object.keys(result.value).forEach(key => {
                 const input = document.createElement('input');
-                input.type = 'hidden';
-                input.name = key;
-                input.value = result.value[key];
+                input.type = 'hidden'; input.name = key; input.value = result.value[key];
                 form.appendChild(input);
             });
 
@@ -232,3 +281,4 @@ if (urlParams.has('msg')) {
 </script>
 </body>
 </html>
+
