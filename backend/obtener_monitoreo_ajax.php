@@ -20,9 +20,14 @@ $sql = "SELECT t.*, d.nombre_defecto, u.nombre as operador,
         WHERE " . implode(" AND ", $where_clauses) . "
         ORDER BY t.fecha_apertura DESC";
 
-$stmt = $pdo->prepare($sql);
-$stmt->execute($params);
-$tickets = $stmt->fetchAll();
+try {
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute($params);
+    $tickets = $stmt->fetchAll();
+} catch (Exception $e) {
+    echo '<div class="alert alert-danger">Error en SQL: Verifica que las columnas severidad y cantidad_motores existan.</div>';
+    exit;
+}
 
 if (empty($tickets)) {
     echo '<div class="col-12 text-center py-5"><p class="text-muted">No tienes tickets abiertos.</p></div>';
@@ -30,6 +35,11 @@ if (empty($tickets)) {
 }
 
 foreach($tickets as $t):
+    // Validar columnas nuevas para que no rompan el diseño si son NULL
+    $sev = isset($t['severidad']) ? $t['severidad'] : 'Baja';
+    $cant = isset($t['cantidad_motores']) ? $t['cantidad_motores'] : 1;
+    $id_def = isset($t['id_defecto']) ? $t['id_defecto'] : 0;
+
     $fecha_inicio = new DateTime($t['fecha_apertura']);
     $fecha_actual = new DateTime();
     if ($fecha_actual < $fecha_inicio) $fecha_actual = $fecha_inicio;
@@ -44,7 +54,6 @@ foreach($tickets as $t):
     if ($minutos_total >= 60 && $minutos_total < 120) $clase_semaforo = "border-alerta";
     elseif ($minutos_total >= 120) $clase_semaforo = "border-critico";
 
-    // Escapamos strings para JS
     $id_motor_js = addslashes($t['id_motor']);
 ?>
     <div class="col-lg-12">
@@ -58,7 +67,7 @@ foreach($tickets as $t):
                     </div>
                     
                     <div class="col-md-3 border-end">
-                        <small class="text-muted fw-bold d-block" style="font-size: 0.6rem;">MOTOR / MODELO (x<?php echo $t['cantidad_motores']; ?>)</small>
+                        <small class="text-muted fw-bold d-block" style="font-size: 0.6rem;">MOTOR / MODELO (x<?php echo $cant; ?>)</small>
                         <div class="serie-txt" style="font-size: 1.1rem; font-weight: 800;"><?php echo $t['id_motor']; ?></div>
                     </div>
 
@@ -80,7 +89,7 @@ foreach($tickets as $t):
                         </button>
                         
                         <button class="btn btn-outline-primary btn-sm fw-bold" 
-                            onclick="editarTicket(<?php echo $t['id']; ?>, '<?php echo $id_motor_js; ?>', '<?php echo $t['tipo_motor_captura']; ?>', '<?php echo $t['severidad']; ?>', <?php echo $t['cantidad_motores']; ?>, <?php echo $t['id_defecto']; ?>)">
+                            onclick="editarTicket(<?php echo $t['id']; ?>, '<?php echo $id_motor_js; ?>', '<?php echo addslashes($t['tipo_motor_captura']); ?>', '<?php echo $sev; ?>', <?php echo $cant; ?>, <?php echo $id_def; ?>)">
                             <i class="bi bi-pencil-square"></i> EDITAR
                         </button>
 
