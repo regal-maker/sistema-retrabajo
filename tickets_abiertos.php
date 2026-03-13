@@ -113,7 +113,7 @@ function editarTicket(id, motorActual, tipoActual, severidadActual, cantidadActu
                 <div class="row g-3 mb-3">
                     <div class="col-md-8">
                         <label class="form-label small fw-bold">NÚMERO DE SERIE / MODELO</label>
-                        <input type="text" id="edit-modelo" class="form-control border-primary" value="${motorActual}">
+                        <input type="text" id="edit-modelo" class="form-control border-primary fw-bold" value="${motorActual}">
                     </div>
                     <div class="col-md-4">
                         <label class="form-label small fw-bold">CANTIDAD MOTORES</label>
@@ -145,7 +145,9 @@ function editarTicket(id, motorActual, tipoActual, severidadActual, cantidadActu
                 </div>
 
                 <label class="form-label small fw-bold text-primary">3. COMPONENTES DEL CATÁLOGO</label>
-                <div id="gridPiezasEdicion" class="row g-2 mb-3 border rounded p-2 bg-light" style="max-height: 160px; overflow-y: auto;"></div>
+                <div id="gridPiezasEdicion" class="row g-2 mb-3 border rounded p-3 bg-light" style="min-height: 100px; max-height: 200px; overflow-y: auto;">
+                    <div class="text-center w-100 text-muted">Cargando componentes...</div>
+                </div>
 
                 <div id="resumenCantidadesEdit" class="mb-3"></div>
 
@@ -158,6 +160,7 @@ function editarTicket(id, motorActual, tipoActual, severidadActual, cantidadActu
         didOpen: () => {
             fetch('backend/obtener_defectos_json.php').then(res => res.json()).then(data => {
                 const select = document.getElementById('edit-defecto');
+                select.innerHTML = '';
                 data.forEach(d => {
                     const opt = document.createElement('option');
                     opt.value = d.id; opt.text = d.nombre_defecto;
@@ -165,6 +168,7 @@ function editarTicket(id, motorActual, tipoActual, severidadActual, cantidadActu
                     select.appendChild(opt);
                 });
             });
+            // CARGA FORZADA DE PIEZAS
             cargarPiezasEdicion(id, tipoActual);
         },
         showCancelButton: true,
@@ -190,21 +194,36 @@ function editarTicket(id, motorActual, tipoActual, severidadActual, cantidadActu
 
 function cargarPiezasEdicion(idTicket, tipo) {
     const grid = document.getElementById('gridPiezasEdicion');
-    grid.innerHTML = '<div class="text-center w-100 small py-2">Cargando...</div>';
-    fetch(`backend/obtener_piezas_ticket.php?id_ticket=${idTicket}&tipo=${tipo}`).then(res => res.json()).then(data => {
-        grid.innerHTML = "";
-        if(editScrapItems.length === 0) {
-            for (let id_p in data.asignadas) { 
-                const pInfo = data.catalogo.find(c => c.id == id_p);
-                editScrapItems.push({ id: id_p, nombre: pInfo ? pInfo.descripcion : 'Pieza', qty: data.asignadas[id_p] }); 
+    if (!grid) return;
+    grid.innerHTML = '<div class="text-center w-100 py-3"><div class="spinner-border spinner-border-sm text-primary"></div><br>Buscando componentes...</div>';
+    
+    fetch(`backend/obtener_piezas_ticket.php?id_ticket=${idTicket}&tipo=${tipo}`)
+        .then(res => res.json())
+        .then(data => {
+            grid.innerHTML = "";
+            if(editScrapItems.length === 0 && data.asignadas) {
+                for (let id_p in data.asignadas) { 
+                    const pInfo = data.catalogo.find(c => c.id == id_p);
+                    editScrapItems.push({ id: id_p, nombre: pInfo ? pInfo.descripcion : 'Pieza', qty: data.asignadas[id_p] }); 
+                }
             }
-        }
-        data.catalogo.forEach(p => {
-            const isActive = editScrapItems.find(i => i.id == p.id);
-            grid.innerHTML += `<div class="col-md-3"><button type="button" class="btn btn-sm w-100 btn-pieza-edit ${isActive ? 'btn-primary' : 'btn-outline-secondary'}" id="btn-edit-p-${p.id}" onclick="togglePiezaEdicion('${p.id}', '${p.descripcion}')">${p.descripcion}</button></div>`;
+            if (data.catalogo.length === 0) {
+                grid.innerHTML = '<div class="text-center w-100 text-muted small">No hay piezas para esta configuración.</div>';
+                return;
+            }
+            data.catalogo.forEach(p => {
+                const isActive = editScrapItems.some(i => i.id == p.id);
+                const col = document.createElement('div');
+                col.className = 'col-md-3 col-6 mb-2';
+                col.innerHTML = `
+                    <button type="button" class="btn btn-sm w-100 btn-pieza-edit ${isActive ? 'btn-primary shadow' : 'btn-outline-secondary'}" 
+                        id="btn-edit-p-${p.id}" onclick="togglePiezaEdicion('${p.id}', '${p.descripcion}')">
+                        ${p.descripcion}
+                    </button>`;
+                grid.appendChild(col);
+            });
+            renderResumenEdicion();
         });
-        renderResumenEdicion();
-    });
 }
 
 function togglePiezaEdicion(id, nombre) {
@@ -222,6 +241,7 @@ function togglePiezaEdicion(id, nombre) {
 
 function renderResumenEdicion() {
     const container = document.getElementById('resumenCantidadesEdit');
+    if(!container) return;
     if(editScrapItems.length === 0) { container.innerHTML = ""; return; }
     container.innerHTML = '<label class="form-label small fw-bold mb-2 mt-2">CANTIDADES POR PIEZA:</label>';
     editScrapItems.forEach(item => {
