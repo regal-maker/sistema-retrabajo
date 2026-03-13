@@ -101,10 +101,9 @@ function cancelarTicket(id) {
         if (result.isConfirmed) enviarForm('backend/cancelar_ticket.php', { id_ticket: id });
     })
 }
-let editScrapItems = []; 
 
 function editarTicket(id, motorActual, tipoActual, severidadActual, cantidadActual, defectoActualId) {
-    editScrapItems = []; // Reiniciar arreglo global
+    editScrapItems = []; 
 
     Swal.fire({
         title: 'MODIFICAR TICKET COMPLETO',
@@ -146,44 +145,30 @@ function editarTicket(id, motorActual, tipoActual, severidadActual, cantidadActu
                 </div>
 
                 <label class="form-label small fw-bold text-primary">3. COMPONENTES DEL CATÁLOGO</label>
-                <div id="gridPiezasEdicion" class="row g-2 mb-3 border rounded p-3 bg-light" style="min-height: 120px; max-height: 250px; overflow-y: auto;">
-                    <div class="text-center w-100 py-3">Cargando componentes...</div>
-                </div>
+                <div id="gridPiezasEdicion" class="row g-2 mb-3 border rounded p-3 bg-light" style="min-height: 100px; max-height: 200px; overflow-y: auto;"></div>
 
                 <div id="resumenCantidadesEdit" class="mb-3"></div>
 
-                <div class="mb-2 pt-2 border-top">
+                <div class="mb-2">
                     <label class="form-label small fw-bold text-danger">DEFECTO PRINCIPAL</label>
                     <select id="edit-defecto" class="form-select border-danger"></select>
                 </div>
             </div>
         `,
         didOpen: () => {
-            // 1. Cargar Defectos
-            fetch('backend/obtener_defectos_json.php')
-                .then(res => res.json())
-                .then(data => {
-                    const select = document.getElementById('edit-defecto');
-                    select.innerHTML = '';
-                    data.forEach(d => {
-                        const opt = document.createElement('option');
-                        opt.value = d.id; opt.text = d.nombre_defecto;
-                        if(d.id == defectoActualId) opt.selected = true;
-                        select.appendChild(opt);
-                    });
+            fetch('backend/obtener_defectos_json.php').then(res => res.json()).then(data => {
+                const select = document.getElementById('edit-defecto');
+                data.forEach(d => {
+                    const opt = document.createElement('option');
+                    opt.value = d.id; opt.text = d.nombre_defecto;
+                    if(d.id == defectoActualId) opt.selected = true;
+                    select.appendChild(opt);
                 });
-
-            // 2. Cargar Piezas (Usando el tipo actual)
+            });
             cargarPiezasEdicion(id, tipoActual);
         },
-        showCancelButton: true,
-        confirmButtonText: 'GUARDAR CAMBIOS',
-        confirmButtonColor: '#00539b',
         preConfirm: () => {
-            if (editScrapItems.length === 0) {
-                Swal.showValidationMessage('Selecciona al menos un componente');
-                return false;
-            }
+            if (editScrapItems.length === 0) { Swal.showValidationMessage('Selecciona al menos una pieza scrap'); return false; }
             return {
                 id_ticket: id,
                 motor: document.getElementById('edit-modelo').value,
@@ -202,84 +187,6 @@ function editarTicket(id, motorActual, tipoActual, severidadActual, cantidadActu
 
 function cargarPiezasEdicion(idTicket, tipo) {
     const grid = document.getElementById('gridPiezasEdicion');
-    if(!grid) return;
-    
-    grid.innerHTML = '<div class="text-center w-100 py-3"><div class="spinner-border spinner-border-sm text-primary"></div><br>Buscando componentes...</div>';
-    
-    fetch(`backend/obtener_piezas_ticket.php?id_ticket=${idTicket}&tipo=${tipo}`)
-        .then(res => res.json())
-        .then(data => {
-            grid.innerHTML = "";
-            
-            // Si editScrapItems está vacío, es la carga inicial: llenar con lo que viene de BD
-            if (editScrapItems.length === 0 && data.asignadas) {
-                for (let id_p in data.asignadas) {
-                    const pInfo = data.catalogo.find(c => c.id == id_p);
-                    if (pInfo) {
-                        editScrapItems.push({ id: id_p, nombre: pInfo.descripcion, qty: data.asignadas[id_p] });
-                    }
-                }
-            }
-
-            if (data.catalogo.length === 0) {
-                grid.innerHTML = '<div class="text-center w-100 py-3 text-muted">No hay piezas para este tipo.</div>';
-            } else {
-                data.catalogo.forEach(p => {
-                    const isActive = editScrapItems.some(i => i.id == p.id);
-                    const col = document.createElement('div');
-                    col.className = 'col-md-3 col-6 mb-2';
-                    col.innerHTML = `
-                        <button type="button" class="btn btn-sm w-100 btn-pieza-edit ${isActive ? 'btn-primary shadow' : 'btn-outline-secondary'}" 
-                            id="btn-edit-p-${p.id}" onclick="togglePiezaEdicion('${p.id}', '${p.descripcion.replace(/'/g, "\\'")}')">
-                            ${p.descripcion}
-                        </button>`;
-                    grid.appendChild(col);
-                });
-            }
-            renderResumenEdicion();
-        });
-}
-
-function togglePiezaEdicion(id, nombre) {
-    const idx = editScrapItems.findIndex(i => i.id == id);
-    const btn = document.getElementById(`btn-edit-p-${id}`);
-    
-    if (idx > -1) {
-        editScrapItems.splice(idx, 1);
-        if(btn) btn.classList.replace('btn-primary', 'btn-outline-secondary');
-    } else {
-        editScrapItems.push({ id: id, nombre: nombre, qty: 1 });
-        if(btn) btn.classList.replace('btn-outline-secondary', 'btn-primary');
-    }
-    renderResumenEdicion();
-}
-
-function renderResumenEdicion() {
-    const container = document.getElementById('resumenCantidadesEdit');
-    if(!container) return;
-    
-    if(editScrapItems.length === 0) {
-        container.innerHTML = "";
-        return;
-    }
-
-    container.innerHTML = '<label class="form-label small fw-bold mb-2 mt-2">CANTIDADES RETIRADAS:</label>';
-    editScrapItems.forEach(item => {
-        container.innerHTML += `
-            <div class="resumen-edit-item mb-1 d-flex align-items-center bg-white p-2 border rounded">
-                <input type="number" class="form-control form-control-sm me-2 text-center" style="width: 55px" value="${item.qty}" min="1" onchange="updateEditQty('${item.id}', this.value)">
-                <span class="small fw-bold text-truncate">${item.nombre}</span>
-            </div>`;
-    });
-}
-
-function updateEditQty(id, val) {
-    const item = editScrapItems.find(i => i.id == id);
-    if(item) item.qty = Math.max(1, parseInt(val) || 1);
-}
-
-function cargarPiezasEdicion(idTicket, tipo) {
-    const grid = document.getElementById('gridPiezasEdicion');
     if (!grid) return;
     grid.innerHTML = '<div class="text-center w-100 py-3"><div class="spinner-border spinner-border-sm text-primary"></div><br>Buscando componentes...</div>';
     
@@ -288,9 +195,9 @@ function cargarPiezasEdicion(idTicket, tipo) {
         .then(data => {
             grid.innerHTML = "";
             if(editScrapItems.length === 0 && data.asignadas) {
-                for (let id_p in data.asignadas) { 
+                for (let id_p in data.asignadas) {
                     const pInfo = data.catalogo.find(c => c.id == id_p);
-                    editScrapItems.push({ id: id_p, nombre: pInfo ? pInfo.descripcion : 'Pieza', qty: data.asignadas[id_p] }); 
+                    editScrapItems.push({ id: id_p, nombre: pInfo ? pInfo.descripcion : 'Pieza', qty: data.asignadas[id_p] });
                 }
             }
             if (data.catalogo.length === 0) {
@@ -303,7 +210,7 @@ function cargarPiezasEdicion(idTicket, tipo) {
                 col.className = 'col-md-3 col-6 mb-2';
                 col.innerHTML = `
                     <button type="button" class="btn btn-sm w-100 btn-pieza-edit ${isActive ? 'btn-primary shadow' : 'btn-outline-secondary'}" 
-                        id="btn-edit-p-${p.id}" onclick="togglePiezaEdicion('${p.id}', '${p.descripcion}')">
+                        id="btn-edit-p-${p.id}" onclick="togglePiezaEdicion('${p.id}', '${p.descripcion.replace(/'/g, "\\'")}')">
                         ${p.descripcion}
                     </button>`;
                 grid.appendChild(col);
@@ -329,7 +236,7 @@ function renderResumenEdicion() {
     const container = document.getElementById('resumenCantidadesEdit');
     if(!container) return;
     if(editScrapItems.length === 0) { container.innerHTML = ""; return; }
-    container.innerHTML = '<label class="form-label small fw-bold mb-2 mt-2">CANTIDADES POR PIEZA:</label>';
+    container.innerHTML = '<label class="form-label small fw-bold mb-2 mt-2">CANTIDADES RETIRADAS:</label>';
     editScrapItems.forEach(item => {
         container.innerHTML += `
             <div class="resumen-edit-item">
@@ -375,4 +282,3 @@ if (urlParams.has('msg')) {
 </script>
 </body>
 </html>
-
